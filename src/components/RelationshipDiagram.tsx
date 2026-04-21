@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import * as d3 from 'd3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { GitFork } from '@phosphor-icons/react'
@@ -33,6 +33,14 @@ interface Node {
   type: 'table' | 'join'
   rowCount: number
   columnCount: number
+  columns: ColumnInfo[]
+}
+
+interface TooltipData {
+  visible: boolean
+  x: number
+  y: number
+  node: Node | null
 }
 
 interface Link {
@@ -46,6 +54,12 @@ interface Link {
 export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipDiagramProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [tooltip, setTooltip] = useState<TooltipData>({
+    visible: false,
+    x: 0,
+    y: 0,
+    node: null
+  })
 
   const { nodes, links } = useMemo(() => {
     const nodeMap = new Map<string, Node>()
@@ -58,7 +72,8 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
           name: result.name,
           type: 'table',
           rowCount: result.data.length,
-          columnCount: result.columns.length
+          columnCount: result.columns.length,
+          columns: result.columns
         })
       }
     })
@@ -71,7 +86,8 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
           name: join.resultName,
           type: 'join',
           rowCount: joinResult.data.length,
-          columnCount: joinResult.columns.length
+          columnCount: joinResult.columns.length,
+          columns: joinResult.columns
         })
 
         linkList.push({
@@ -200,6 +216,40 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       .attr('stroke-width', 2)
       .style('cursor', 'grab')
       .style('filter', 'drop-shadow(0 2px 8px oklch(0 0 0 / 0.1))')
+      .on('mouseenter', function(event: any, d: any) {
+        const containerRect = containerRef.current?.getBoundingClientRect()
+        if (containerRect) {
+          setTooltip({
+            visible: true,
+            x: event.pageX - containerRect.left,
+            y: event.pageY - containerRect.top,
+            node: d
+          })
+        }
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('stroke-width', 3)
+          .style('filter', 'drop-shadow(0 4px 12px oklch(0 0 0 / 0.2))')
+      })
+      .on('mousemove', function(event: any) {
+        const containerRect = containerRef.current?.getBoundingClientRect()
+        if (containerRect) {
+          setTooltip(prev => ({
+            ...prev,
+            x: event.pageX - containerRect.left,
+            y: event.pageY - containerRect.top
+          }))
+        }
+      })
+      .on('mouseleave', function() {
+        setTooltip({ visible: false, x: 0, y: 0, node: null })
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('stroke-width', 2)
+          .style('filter', 'drop-shadow(0 2px 8px oklch(0 0 0 / 0.1))')
+      })
 
     node.append('text')
       .attr('text-anchor', 'middle')
@@ -229,8 +279,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       .attr('cy', -35)
       .attr('fill', (d: any) => d.type === 'join' ? 'oklch(0.7 0.15 195)' : 'oklch(0.35 0.15 265)')
 
-    node.append('title')
-      .text((d: any) => `${d.name}\n${d.rowCount} rows, ${d.columnCount} columns`)
+
 
     simulation.on('tick', () => {
       link
@@ -284,6 +333,15 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
     )
   }
 
+  const getColumnTypeLabel = (type: string) => {
+    switch (type) {
+      case 'numeric': return '数字'
+      case 'date': return '日期'
+      case 'text': return '文本'
+      default: return type
+    }
+  }
+
   return (
     <Card className="border-2">
       <CardHeader>
@@ -296,8 +354,61 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div ref={containerRef} className="w-full rounded-lg bg-muted/30 border-2 border-border overflow-hidden">
+        <div ref={containerRef} className="w-full rounded-lg bg-muted/30 border-2 border-border overflow-hidden relative">
           <svg ref={svgRef} className="w-full" />
+          
+          {tooltip.visible && tooltip.node && (
+            <div
+              className="absolute z-50 pointer-events-none"
+              style={{
+                left: `${tooltip.x + 20}px`,
+                top: `${tooltip.y + 20}px`,
+                maxWidth: '400px'
+              }}
+            >
+              <div className="bg-card border-2 border-border rounded-lg shadow-xl p-4 font-mono text-xs">
+                <div className="space-y-3">
+                  <div className="pb-2 border-b border-border">
+                    <div className="font-bold text-sm text-foreground mb-1">
+                      {tooltip.node.name}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {tooltip.node.rowCount} 行 × {tooltip.node.columnCount} 列
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-muted-foreground mb-2 font-semibold">列详情:</div>
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                      {tooltip.node.columns.map((col, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-start justify-between gap-4 py-1 px-2 rounded bg-muted/50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground truncate">
+                              {col.name}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
+                              col.type === 'numeric' 
+                                ? 'bg-accent text-accent-foreground' 
+                                : col.type === 'date'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary text-secondary-foreground'
+                            }`}>
+                              {getColumnTypeLabel(col.type)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
