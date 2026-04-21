@@ -14,6 +14,7 @@ import { CorrelationAnalysis } from '@/components/CorrelationAnalysis'
 import { ScatterPlot } from '@/components/ScatterPlot'
 import { SqlQueryPanel } from '@/components/SqlQueryPanel'
 import { QueryResults } from '@/components/QueryResults'
+import { JoinPanel } from '@/components/JoinPanel'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from '@/lib/types'
 
@@ -259,6 +260,11 @@ function App() {
                     data={filteredData}
                     columns={columns}
                     onQueryResult={handleQueryResult}
+                  />
+                  
+                  <JoinPanel
+                    queryResults={queryResults}
+                    onJoinResult={handleQueryResult}
                   />
                   
                   <QueryResults

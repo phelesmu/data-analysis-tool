@@ -68,6 +68,20 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Progression**: Data loads → Numeric columns identified → Correlation matrix calculated → Top correlations ranked by strength → User views matrix heatmap and correlation pairs → Correlation values color-coded by strength (strong/moderate/weak) → Tooltips show detailed correlation info
 - **Success criteria**: Correlations calculated accurately (-1 to 1 range), matrix displays with color-coded cells (positive=cyan, negative=red), top 10 correlations listed with strength badges, updates when filters applied
 
+### SQL Query Editor
+- **Functionality**: Provides SQL interface to query and transform data using SQL syntax (SELECT, WHERE, GROUP BY, aggregations)
+- **Purpose**: Enables advanced users to create custom data subsets and calculated columns for deeper analysis
+- **Trigger**: User navigates to SQL tab and enters query
+- **Progression**: User clicks SQL tab → Enters query using `?` as table reference → Executes query → New result table generated → Result appears in saved results list → Can view/export/delete results
+- **Success criteria**: Queries execute correctly, results display as new tables with statistics and charts, example queries help new users, errors show helpful messages
+
+### JOIN Operations
+- **Functionality**: Combines multiple saved query result tables using SQL JOIN operations (INNER, LEFT, RIGHT, FULL)
+- **Purpose**: Allows users to merge related datasets by matching column values, enabling relational analysis across multiple query results
+- **Trigger**: User creates at least 2 query results, then uses JOIN panel in SQL tab
+- **Progression**: User selects left table → Selects right table → Chooses join columns from each → Selects JOIN type → Executes JOIN → Combined result table generated → Result saved to query results list
+- **Success criteria**: All JOIN types work correctly, column prefixes prevent name conflicts (L_ and R_), JOIN preview shows operation details, joined results display with full statistics and visualization capabilities
+
 ## Edge Case Handling
 
 - **Invalid File Format**: Display clear error message "Please upload a valid Excel or CSV file" with supported format list
@@ -79,6 +93,8 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Missing Headers**: Auto-generate column names (Column A, Column B, etc.) if first row isn't headers
 - **Insufficient Numeric Columns**: Display helpful message in Correlation tab when fewer than 2 numeric columns exist
 - **Missing Values**: Handle null values in correlation calculations by excluding them from statistical computations
+- **JOIN with No Matches**: Display helpful message when JOIN returns no rows, suggesting different join columns or JOIN type
+- **Fewer than 2 Query Results**: Show placeholder in JOIN panel explaining at least 2 query results are needed
 
 ## Design Direction
 
@@ -121,17 +137,20 @@ Animations should reinforce data interactions and state changes, creating a sens
 ## Component Selection
 
 - **Components**: 
-  - Card (shadcn) - For statistics summary panels, chart containers, filter panels, and correlation displays with subtle shadows
+  - Card (shadcn) - For statistics summary panels, chart containers, filter panels, correlation displays, and JOIN configuration
   - Table (shadcn) - For data grid display with sorting capabilities and correlation matrix
-  - Button (shadcn) - Primary actions like "Upload File" and "Export" with hover states
-  - Select (shadcn) - For column selection and chart type switching with smooth dropdowns
-  - Tabs (shadcn) - To switch between Table View, Charts, Statistics, and Correlation panels
-  - Badge (shadcn) - To display data types (numeric, text, date), active filter counts, and correlation strength labels
-  - ScrollArea (shadcn) - For smooth scrolling through large datasets and correlation lists
+  - Button (shadcn) - Primary actions like "Upload File", "Execute Query", "Execute JOIN", and "Export" with hover states
+  - Select (shadcn) - For column selection, chart type switching, JOIN table/column selection with smooth dropdowns
+  - Tabs (shadcn) - To switch between Table View, Charts, Statistics, Correlation, and SQL panels
+  - Badge (shadcn) - To display data types (numeric, text, date), active filter counts, correlation strength labels, and JOIN type indicators
+  - ScrollArea (shadcn) - For smooth scrolling through large datasets, correlation lists, and query results
   - Progress (shadcn) - For file upload progress indication
   - Calendar (shadcn) - For date range selection in filters with intuitive date picker
   - Popover (shadcn) - For calendar dropdown in date filters
   - Collapsible (shadcn) - For expandable filter panel
+  - Textarea (shadcn) - For SQL query editor with syntax input
+  - Label (shadcn) - For form labels in JOIN panel and query editor
+  - Alert (shadcn) - For query/JOIN errors and informational messages
 
 - **Customizations**: 
   - Custom file upload dropzone with drag-over state highlighting
@@ -139,6 +158,8 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Custom stat cards with number animations on load
   - Empty state illustrations for no-data scenarios
   - Custom correlation matrix heatmap with color-coded cells based on correlation strength
+  - Custom JOIN preview panel showing operation details before execution
+  - Syntax-highlighted SQL query textarea with monospace font
 
 - **States**: 
   - Buttons: Default (solid primary), hover (slightly lighter with shadow lift), active (pressed down with darker shade), disabled (muted with reduced opacity)
@@ -161,6 +182,9 @@ Animations should reinforce data interactions and state changes, creating a sens
   - CaretDown (Phosphor) - Collapsible toggle
   - Function (Phosphor) - Statistics tab
   - ArrowsInLineVertical (Phosphor) - Correlation analysis tab and icon
+  - Code (Phosphor) - SQL query tab
+  - Play (Phosphor) - Execute query/JOIN button
+  - ArrowsLeftRight (Phosphor) - JOIN operations icon
 
 - **Spacing**: 
   - Container padding: `p-8` (2rem) for main content areas
@@ -180,3 +204,5 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Hide less critical table columns, allow horizontal scroll for essential data
   - Correlation matrix becomes horizontally scrollable with sticky column headers
   - Top correlations list displays one per row on mobile for better readability
+  - SQL query editor and JOIN panel stack vertically with full-width controls
+  - JOIN table selection cards stack vertically on mobile instead of side-by-side
