@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { DataRow, ColumnInfo, Statistics, FilterConfig } from './types'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from './types'
 
 export function parseFile(file: File): Promise<{ data: DataRow[]; columns: ColumnInfo[] }> {
   return new Promise((resolve, reject) => {
@@ -284,4 +284,82 @@ export function applyDateRangeFilter(data: DataRow[], column: string, startDate:
 
     return dateValueTime >= startDateTime && dateValueTime <= endDateTime
   })
+}
+
+function calculatePearsonCorrelation(x: number[], y: number[]): number {
+  const n = x.length
+  if (n === 0 || n !== y.length) return 0
+
+  const sumX = x.reduce((acc, val) => acc + val, 0)
+  const sumY = y.reduce((acc, val) => acc + val, 0)
+  const sumXY = x.reduce((acc, val, i) => acc + val * y[i], 0)
+  const sumX2 = x.reduce((acc, val) => acc + val * val, 0)
+  const sumY2 = y.reduce((acc, val) => acc + val * val, 0)
+
+  const numerator = n * sumXY - sumX * sumY
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
+
+  if (denominator === 0) return 0
+
+  return numerator / denominator
+}
+
+export function calculateCorrelationMatrix(data: DataRow[], columns: ColumnInfo[]): CorrelationMatrix {
+  const numericColumns = columns.filter(col => col.type === 'numeric')
+  
+  if (numericColumns.length < 2) {
+    return { columns: [], matrix: [] }
+  }
+
+  const columnNames = numericColumns.map(col => col.name)
+  const matrix: number[][] = []
+
+  for (let i = 0; i < numericColumns.length; i++) {
+    const row: number[] = []
+    const col1 = numericColumns[i]
+    const values1 = data
+      .map(row => row[col1.name])
+      .filter((val): val is number => typeof val === 'number')
+
+    for (let j = 0; j < numericColumns.length; j++) {
+      if (i === j) {
+        row.push(1)
+        continue
+      }
+
+      const col2 = numericColumns[j]
+      const values2 = data
+        .map(row => row[col2.name])
+        .filter((val): val is number => typeof val === 'number')
+
+      const minLength = Math.min(values1.length, values2.length)
+      const correlation = calculatePearsonCorrelation(
+        values1.slice(0, minLength),
+        values2.slice(0, minLength)
+      )
+      
+      row.push(Number(correlation.toFixed(3)))
+    }
+    matrix.push(row)
+  }
+
+  return { columns: columnNames, matrix }
+}
+
+export function getTopCorrelations(correlationMatrix: CorrelationMatrix, limit: number = 10): CorrelationPair[] {
+  const pairs: CorrelationPair[] = []
+
+  for (let i = 0; i < correlationMatrix.columns.length; i++) {
+    for (let j = i + 1; j < correlationMatrix.columns.length; j++) {
+      pairs.push({
+        column1: correlationMatrix.columns[i],
+        column2: correlationMatrix.columns[j],
+        correlation: correlationMatrix.matrix[i][j]
+      })
+    }
+  }
+
+  return pairs
+    .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation))
+    .slice(0, limit)
 }

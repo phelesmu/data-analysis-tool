@@ -61,6 +61,13 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Progression**: Data loads → Date columns detected → Timeline buckets calculated → Bar chart renders with color-coded frequency → User hovers for detailed counts → Chart updates when filters applied
 - **Success criteria**: Chart displays correctly with appropriate granularity, bars are color-coded by density (high/medium/low), tooltips show exact counts, responds to data filters
 
+### Correlation Analysis
+- **Functionality**: Calculates Pearson correlation coefficients between all numeric columns, displays correlation matrix and ranks strongest relationships
+- **Purpose**: Reveals statistical relationships between numeric variables, helping users discover patterns and dependencies in their data
+- **Trigger**: Automatic calculation after data loads, accessible via Correlation tab
+- **Progression**: Data loads → Numeric columns identified → Correlation matrix calculated → Top correlations ranked by strength → User views matrix heatmap and correlation pairs → Correlation values color-coded by strength (strong/moderate/weak) → Tooltips show detailed correlation info
+- **Success criteria**: Correlations calculated accurately (-1 to 1 range), matrix displays with color-coded cells (positive=cyan, negative=red), top 10 correlations listed with strength badges, updates when filters applied
+
 ## Edge Case Handling
 
 - **Invalid File Format**: Display clear error message "Please upload a valid Excel or CSV file" with supported format list
@@ -70,6 +77,8 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Date Columns**: Automatically detect date columns and provide date-specific filtering with calendar picker
 - **Malformed Data**: Catch parsing errors and display "Unable to parse file" with suggestion to check file format
 - **Missing Headers**: Auto-generate column names (Column A, Column B, etc.) if first row isn't headers
+- **Insufficient Numeric Columns**: Display helpful message in Correlation tab when fewer than 2 numeric columns exist
+- **Missing Values**: Handle null values in correlation calculations by excluding them from statistical computations
 
 ## Design Direction
 
@@ -112,13 +121,13 @@ Animations should reinforce data interactions and state changes, creating a sens
 ## Component Selection
 
 - **Components**: 
-  - Card (shadcn) - For statistics summary panels, chart containers, and filter panels with subtle shadows
-  - Table (shadcn) - For data grid display with sorting capabilities
+  - Card (shadcn) - For statistics summary panels, chart containers, filter panels, and correlation displays with subtle shadows
+  - Table (shadcn) - For data grid display with sorting capabilities and correlation matrix
   - Button (shadcn) - Primary actions like "Upload File" and "Export" with hover states
   - Select (shadcn) - For column selection and chart type switching with smooth dropdowns
-  - Tabs (shadcn) - To switch between Table View, Charts, and Statistics panels
-  - Badge (shadcn) - To display data types (numeric, text, date) and active filter counts
-  - ScrollArea (shadcn) - For smooth scrolling through large datasets
+  - Tabs (shadcn) - To switch between Table View, Charts, Statistics, and Correlation panels
+  - Badge (shadcn) - To display data types (numeric, text, date), active filter counts, and correlation strength labels
+  - ScrollArea (shadcn) - For smooth scrolling through large datasets and correlation lists
   - Progress (shadcn) - For file upload progress indication
   - Calendar (shadcn) - For date range selection in filters with intuitive date picker
   - Popover (shadcn) - For calendar dropdown in date filters
@@ -129,6 +138,7 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Custom chart legend with interactive filtering
   - Custom stat cards with number animations on load
   - Empty state illustrations for no-data scenarios
+  - Custom correlation matrix heatmap with color-coded cells based on correlation strength
 
 - **States**: 
   - Buttons: Default (solid primary), hover (slightly lighter with shadow lift), active (pressed down with darker shade), disabled (muted with reduced opacity)
@@ -149,6 +159,8 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Plus (Phosphor) - Add filter action
   - CalendarBlank (Phosphor) - Date picker trigger, timeline indicators
   - CaretDown (Phosphor) - Collapsible toggle
+  - Function (Phosphor) - Statistics tab
+  - ArrowsInLineVertical (Phosphor) - Correlation analysis tab and icon
 
 - **Spacing**: 
   - Container padding: `p-8` (2rem) for main content areas
@@ -166,3 +178,5 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Statistics cards stack in single column
   - Filter and date range cards stack vertically instead of side-by-side grid
   - Hide less critical table columns, allow horizontal scroll for essential data
+  - Correlation matrix becomes horizontally scrollable with sticky column headers
+  - Top correlations list displays one per row on mobile for better readability

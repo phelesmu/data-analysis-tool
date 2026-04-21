@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
-import { Table, ChartBar, Function, UploadSimple } from '@phosphor-icons/react'
+import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/FileUpload'
@@ -10,8 +10,9 @@ import { DataVisualization } from '@/components/DataVisualization'
 import { DataFilters } from '@/components/DataFilters'
 import { DateRangeSlider } from '@/components/DateRangeSlider'
 import { TimelineChart } from '@/components/TimelineChart'
-import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter } from '@/lib/dataUtils'
-import type { DataRow, ColumnInfo, Statistics, FilterConfig } from '@/lib/types'
+import { CorrelationAnalysis } from '@/components/CorrelationAnalysis'
+import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations } from '@/lib/dataUtils'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from '@/lib/types'
 
 function App() {
   const [data, setData] = useState<DataRow[]>([])
@@ -37,6 +38,14 @@ function App() {
   const filteredStatistics = useMemo(() => {
     return calculateStatistics(filteredData, columns)
   }, [filteredData, columns])
+
+  const correlationMatrix = useMemo(() => {
+    return calculateCorrelationMatrix(filteredData, columns)
+  }, [filteredData, columns])
+
+  const topCorrelations = useMemo(() => {
+    return getTopCorrelations(correlationMatrix, 10)
+  }, [correlationMatrix])
 
   const activeFiltersCount = useMemo(() => {
     let count = filters.filter(f => f.value.trim() !== '').length
@@ -155,7 +164,7 @@ function App() {
             <TimelineChart data={filteredData} columns={columns} />
 
             <Tabs defaultValue="table" className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsList className="grid w-full max-w-2xl grid-cols-4">
                 <TabsTrigger value="table" className="gap-2">
                   <Table size={18} weight="bold" />
                   <span className="hidden sm:inline">Table</span>
@@ -167,6 +176,10 @@ function App() {
                 <TabsTrigger value="stats" className="gap-2">
                   <Function size={18} weight="bold" />
                   <span className="hidden sm:inline">Statistics</span>
+                </TabsTrigger>
+                <TabsTrigger value="correlation" className="gap-2">
+                  <ArrowsInLineVertical size={18} weight="bold" />
+                  <span className="hidden sm:inline">Correlation</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -180,6 +193,13 @@ function App() {
 
               <TabsContent value="stats" className="mt-6">
                 <StatisticsCards statistics={filteredStatistics} />
+              </TabsContent>
+
+              <TabsContent value="correlation" className="mt-6">
+                <CorrelationAnalysis 
+                  correlationMatrix={correlationMatrix}
+                  topCorrelations={topCorrelations}
+                />
               </TabsContent>
             </Tabs>
           </div>

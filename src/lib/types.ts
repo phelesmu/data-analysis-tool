@@ -17,6 +17,17 @@ export interface Statistics {
   sum?: number
 }
 
+export interface CorrelationPair {
+  column1: string
+  column2: string
+  correlation: number
+}
+
+export interface CorrelationMatrix {
+  columns: string[]
+  matrix: number[][]
+}
+
 export type ChartType = 'bar' | 'line' | 'pie'
 
 export interface FilterConfig {
