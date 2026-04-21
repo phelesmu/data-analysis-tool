@@ -11,6 +11,7 @@ import { DataFilters } from '@/components/DataFilters'
 import { DateRangeSlider } from '@/components/DateRangeSlider'
 import { TimelineChart } from '@/components/TimelineChart'
 import { CorrelationAnalysis } from '@/components/CorrelationAnalysis'
+import { ScatterPlot } from '@/components/ScatterPlot'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from '@/lib/types'
 
@@ -196,10 +197,17 @@ function App() {
               </TabsContent>
 
               <TabsContent value="correlation" className="mt-6">
-                <CorrelationAnalysis 
-                  correlationMatrix={correlationMatrix}
-                  topCorrelations={topCorrelations}
-                />
+                <div className="space-y-6">
+                  <CorrelationAnalysis 
+                    correlationMatrix={correlationMatrix}
+                    topCorrelations={topCorrelations}
+                  />
+                  
+                  <ScatterPlot 
+                    data={filteredData}
+                    columns={columns}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
