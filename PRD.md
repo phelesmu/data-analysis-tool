@@ -54,6 +54,13 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Progression**: User clicks filter panel → Selects column → Chooses operator (equals, contains, between, after, before, etc.) → Inputs value(s) → Filtered data displays → Statistics and charts update
 - **Success criteria**: Filters apply correctly to all data types, multiple filters work together (AND logic), active filter count displays, filtered row count updates
 
+### Timeline Distribution Chart
+- **Functionality**: Automatically generates a visual bar chart showing data distribution over time for date columns, with intelligent granularity (daily, weekly, or monthly) based on date range
+- **Purpose**: Provides immediate visual insight into temporal patterns, trends, and data density across the timeline
+- **Trigger**: Automatic after data with date columns loads
+- **Progression**: Data loads → Date columns detected → Timeline buckets calculated → Bar chart renders with color-coded frequency → User hovers for detailed counts → Chart updates when filters applied
+- **Success criteria**: Chart displays correctly with appropriate granularity, bars are color-coded by density (high/medium/low), tooltips show exact counts, responds to data filters
+
 ## Edge Case Handling
 
 - **Invalid File Format**: Display clear error message "Please upload a valid Excel or CSV file" with supported format list
@@ -133,14 +140,14 @@ Animations should reinforce data interactions and state changes, creating a sens
   - UploadSimple (Phosphor) - File upload action
   - Table (Phosphor) - Table view tab
   - ChartBar (Phosphor) - Chart view tab
-  - ChartLine (Phosphor) - Line chart option
+  - ChartLine (Phosphor) - Line chart option, timeline chart
   - ChartPie (Phosphor) - Pie chart option
   - SortAscending/SortDescending (Phosphor) - Column sorting
   - DownloadSimple (Phosphor) - Export functionality
   - X (Phosphor) - Clear/remove actions
   - Funnel (Phosphor) - Filter panel icon
   - Plus (Phosphor) - Add filter action
-  - CalendarBlank (Phosphor) - Date picker trigger
+  - CalendarBlank (Phosphor) - Date picker trigger, timeline indicators
   - CaretDown (Phosphor) - Collapsible toggle
 
 - **Spacing**: 
@@ -153,7 +160,9 @@ Animations should reinforce data interactions and state changes, creating a sens
 - **Mobile**: 
   - Stack tabs vertically on mobile with full-width buttons
   - Convert table to card-based layout showing key fields per row
-  - Charts scale to full width with adjusted aspect ratios
+  - Charts scale to full width with adjusted aspect ratios for readability
+  - Timeline chart adjusts granularity labels to prevent overlap on small screens
   - Upload dropzone reduces padding and font size
   - Statistics cards stack in single column
+  - Filter and date range cards stack vertically instead of side-by-side grid
   - Hide less critical table columns, allow horizontal scroll for essential data

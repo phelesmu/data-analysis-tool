@@ -9,6 +9,7 @@ import { StatisticsCards } from '@/components/StatisticsCards'
 import { DataVisualization } from '@/components/DataVisualization'
 import { DataFilters } from '@/components/DataFilters'
 import { DateRangeSlider } from '@/components/DateRangeSlider'
+import { TimelineChart } from '@/components/TimelineChart'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig } from '@/lib/types'
 
@@ -150,6 +151,8 @@ function App() {
                 onDateRangeChange={handleDateRangeChange}
               />
             </div>
+
+            <TimelineChart data={filteredData} columns={columns} />
 
             <Tabs defaultValue="table" className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-3">
