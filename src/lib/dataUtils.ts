@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { DataRow, ColumnInfo, Statistics } from './types'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig } from './types'
 
 export function parseFile(file: File): Promise<{ data: DataRow[]; columns: ColumnInfo[] }> {
   return new Promise((resolve, reject) => {
@@ -141,4 +141,64 @@ export function calculateStatistics(data: DataRow[], columns: ColumnInfo[]): Sta
   })
 
   return stats
+}
+
+export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: ColumnInfo[]): DataRow[] {
+  if (filters.length === 0) return data
+
+  return data.filter(row => {
+    return filters.every(filter => {
+      const columnValue = row[filter.column]
+      const column = columns.find(c => c.name === filter.column)
+      
+      if (!column) return true
+
+      if (column.type === 'numeric') {
+        const numValue = typeof columnValue === 'number' ? columnValue : null
+        const filterValue = filter.value ? Number(filter.value) : null
+        const filterValueTo = filter.valueTo ? Number(filter.valueTo) : null
+
+        if (numValue === null) return false
+
+        switch (filter.operator) {
+          case 'equals':
+            return filterValue !== null && numValue === filterValue
+          case 'notEquals':
+            return filterValue !== null && numValue !== filterValue
+          case 'greaterThan':
+            return filterValue !== null && numValue > filterValue
+          case 'lessThan':
+            return filterValue !== null && numValue < filterValue
+          case 'greaterThanOrEqual':
+            return filterValue !== null && numValue >= filterValue
+          case 'lessThanOrEqual':
+            return filterValue !== null && numValue <= filterValue
+          case 'between':
+            return filterValue !== null && filterValueTo !== null && numValue >= filterValue && numValue <= filterValueTo
+          default:
+            return true
+        }
+      } else {
+        const strValue = columnValue !== null ? String(columnValue).toLowerCase() : ''
+        const filterValue = filter.value.toLowerCase()
+
+        switch (filter.operator) {
+          case 'equals':
+            return strValue === filterValue
+          case 'notEquals':
+            return strValue !== filterValue
+          case 'contains':
+            return strValue.includes(filterValue)
+          case 'notContains':
+            return !strValue.includes(filterValue)
+          case 'startsWith':
+            return strValue.startsWith(filterValue)
+          case 'endsWith':
+            return strValue.endsWith(filterValue)
+          default:
+            return true
+        }
+      }
+    })
+  })
 }

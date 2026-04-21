@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Table, ChartBar, Function, UploadSimple } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -7,8 +7,9 @@ import { FileUpload } from '@/components/FileUpload'
 import { DataTable } from '@/components/DataTable'
 import { StatisticsCards } from '@/components/StatisticsCards'
 import { DataVisualization } from '@/components/DataVisualization'
-import { parseFile, calculateStatistics } from '@/lib/dataUtils'
-import type { DataRow, ColumnInfo, Statistics } from '@/lib/types'
+import { DataFilters } from '@/components/DataFilters'
+import { parseFile, calculateStatistics, applyFilters } from '@/lib/dataUtils'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig } from '@/lib/types'
 
 function App() {
   const [data, setData] = useState<DataRow[]>([])
@@ -16,6 +17,23 @@ function App() {
   const [statistics, setStatistics] = useState<Statistics[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState<string>('')
+  const [filters, setFilters] = useState<FilterConfig[]>([])
+
+  const filteredData = useMemo(() => {
+    return applyFilters(data, filters, columns)
+  }, [data, filters, columns])
+
+  const filteredStatistics = useMemo(() => {
+    return calculateStatistics(filteredData, columns)
+  }, [filteredData, columns])
+
+  const activeFiltersCount = useMemo(() => {
+    return filters.filter(f => f.value.trim() !== '').length
+  }, [filters])
+
+  const handleFilterChange = useCallback((newFilters: FilterConfig[]) => {
+    setFilters(newFilters)
+  }, [])
 
   const handleFileSelect = async (file: File) => {
     setIsLoading(true)
@@ -50,6 +68,7 @@ function App() {
     setColumns([])
     setStatistics([])
     setFileName('')
+    setFilters([])
   }
 
   return (
@@ -85,7 +104,21 @@ function App() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Current File:</span>
               <span>{fileName}</span>
+              <span className="text-xs">•</span>
+              <span>{data.length} rows</span>
+              {activeFiltersCount > 0 && (
+                <>
+                  <span className="text-xs">•</span>
+                  <span className="text-accent font-medium">{filteredData.length} filtered rows</span>
+                </>
+              )}
             </div>
+
+            <DataFilters 
+              columns={columns} 
+              onFilterChange={handleFilterChange}
+              activeFiltersCount={activeFiltersCount}
+            />
 
             <Tabs defaultValue="table" className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-3">
@@ -104,15 +137,15 @@ function App() {
               </TabsList>
 
               <TabsContent value="table" className="mt-6">
-                <DataTable data={data} columns={columns} />
+                <DataTable data={filteredData} columns={columns} />
               </TabsContent>
 
               <TabsContent value="charts" className="mt-6">
-                <DataVisualization data={data} columns={columns} />
+                <DataVisualization data={filteredData} columns={columns} />
               </TabsContent>
 
               <TabsContent value="stats" className="mt-6">
-                <StatisticsCards statistics={statistics} />
+                <StatisticsCards statistics={filteredStatistics} />
               </TabsContent>
             </Tabs>
           </div>

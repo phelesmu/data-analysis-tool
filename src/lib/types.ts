@@ -18,3 +18,11 @@ export interface Statistics {
 }
 
 export type ChartType = 'bar' | 'line' | 'pie'
+
+export interface FilterConfig {
+  id: string
+  column: string
+  operator: string
+  value: string
+  valueTo?: string
+}
