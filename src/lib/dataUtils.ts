@@ -269,3 +269,19 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
     })
   })
 }
+
+export function applyDateRangeFilter(data: DataRow[], column: string, startDate: Date, endDate: Date): DataRow[] {
+  return data.filter(row => {
+    const columnValue = row[column]
+    if (columnValue === null) return false
+
+    const dateValue = new Date(String(columnValue))
+    if (isNaN(dateValue.getTime())) return false
+
+    const dateValueTime = new Date(dateValue.toDateString()).getTime()
+    const startDateTime = new Date(startDate.toDateString()).getTime()
+    const endDateTime = new Date(endDate.toDateString()).getTime()
+
+    return dateValueTime >= startDateTime && dateValueTime <= endDateTime
+  })
+}

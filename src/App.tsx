@@ -8,7 +8,8 @@ import { DataTable } from '@/components/DataTable'
 import { StatisticsCards } from '@/components/StatisticsCards'
 import { DataVisualization } from '@/components/DataVisualization'
 import { DataFilters } from '@/components/DataFilters'
-import { parseFile, calculateStatistics, applyFilters } from '@/lib/dataUtils'
+import { DateRangeSlider } from '@/components/DateRangeSlider'
+import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig } from '@/lib/types'
 
 function App() {
@@ -18,21 +19,40 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState<string>('')
   const [filters, setFilters] = useState<FilterConfig[]>([])
+  const [dateRangeColumn, setDateRangeColumn] = useState<string>('')
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
 
   const filteredData = useMemo(() => {
-    return applyFilters(data, filters, columns)
-  }, [data, filters, columns])
+    let result = applyFilters(data, filters, columns)
+    
+    if (dateRangeColumn && dateRangeStart && dateRangeEnd) {
+      result = applyDateRangeFilter(result, dateRangeColumn, dateRangeStart, dateRangeEnd)
+    }
+    
+    return result
+  }, [data, filters, columns, dateRangeColumn, dateRangeStart, dateRangeEnd])
 
   const filteredStatistics = useMemo(() => {
     return calculateStatistics(filteredData, columns)
   }, [filteredData, columns])
 
   const activeFiltersCount = useMemo(() => {
-    return filters.filter(f => f.value.trim() !== '').length
-  }, [filters])
+    let count = filters.filter(f => f.value.trim() !== '').length
+    if (dateRangeColumn && dateRangeStart && dateRangeEnd) {
+      count += 1
+    }
+    return count
+  }, [filters, dateRangeColumn, dateRangeStart, dateRangeEnd])
 
   const handleFilterChange = useCallback((newFilters: FilterConfig[]) => {
     setFilters(newFilters)
+  }, [])
+
+  const handleDateRangeChange = useCallback((column: string, startDate: Date | null, endDate: Date | null) => {
+    setDateRangeColumn(column)
+    setDateRangeStart(startDate)
+    setDateRangeEnd(endDate)
   }, [])
 
   const handleFileSelect = async (file: File) => {
@@ -69,6 +89,9 @@ function App() {
     setStatistics([])
     setFileName('')
     setFilters([])
+    setDateRangeColumn('')
+    setDateRangeStart(null)
+    setDateRangeEnd(null)
   }
 
   return (
@@ -114,11 +137,19 @@ function App() {
               )}
             </div>
 
-            <DataFilters 
-              columns={columns} 
-              onFilterChange={handleFilterChange}
-              activeFiltersCount={activeFiltersCount}
-            />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <DataFilters 
+                columns={columns} 
+                onFilterChange={handleFilterChange}
+                activeFiltersCount={filters.filter(f => f.value.trim() !== '').length}
+              />
+
+              <DateRangeSlider
+                data={data}
+                columns={columns}
+                onDateRangeChange={handleDateRangeChange}
+              />
+            </div>
 
             <Tabs defaultValue="table" className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-3">
