@@ -363,3 +363,30 @@ export function getTopCorrelations(correlationMatrix: CorrelationMatrix, limit: 
     .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation))
     .slice(0, limit)
 }
+
+export function exportToCSV(data: DataRow[], filename: string = 'data.csv'): void {
+  if (data.length === 0) return
+
+  const headers = Object.keys(data[0])
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => headers.map(header => {
+      const value = row[header]
+      if (value === null || value === undefined) return ''
+      const strValue = String(value)
+      return strValue.includes(',') ? `"${strValue}"` : strValue
+    }).join(','))
+  ].join('\n')
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  
+  link.setAttribute('href', url)
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
-import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical } from '@phosphor-icons/react'
+import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/FileUpload'
@@ -12,8 +12,18 @@ import { DateRangeSlider } from '@/components/DateRangeSlider'
 import { TimelineChart } from '@/components/TimelineChart'
 import { CorrelationAnalysis } from '@/components/CorrelationAnalysis'
 import { ScatterPlot } from '@/components/ScatterPlot'
-import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations } from '@/lib/dataUtils'
+import { SqlQueryPanel } from '@/components/SqlQueryPanel'
+import { QueryResults } from '@/components/QueryResults'
+import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from '@/lib/types'
+
+interface QueryResult {
+  id: string
+  name: string
+  data: DataRow[]
+  columns: ColumnInfo[]
+  timestamp: Date
+}
 
 function App() {
   const [data, setData] = useState<DataRow[]>([])
@@ -25,6 +35,7 @@ function App() {
   const [dateRangeColumn, setDateRangeColumn] = useState<string>('')
   const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null)
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
+  const [queryResults, setQueryResults] = useState<QueryResult[]>([])
 
   const filteredData = useMemo(() => {
     let result = applyFilters(data, filters, columns)
@@ -105,6 +116,34 @@ function App() {
     setDateRangeEnd(null)
   }
 
+  const handleQueryResult = useCallback((resultData: DataRow[], resultColumns: ColumnInfo[], queryName: string) => {
+    const newResult: QueryResult = {
+      id: `query-${Date.now()}`,
+      name: queryName,
+      data: resultData,
+      columns: resultColumns,
+      timestamp: new Date()
+    }
+    
+    setQueryResults(prev => [...prev, newResult])
+    
+    toast.success('查询执行成功!', {
+      description: `生成了 ${resultData.length} 行 × ${resultColumns.length} 列的结果`
+    })
+  }, [])
+
+  const handleRemoveResult = useCallback((id: string) => {
+    setQueryResults(prev => prev.filter(r => r.id !== id))
+    toast.info('已删除查询结果')
+  }, [])
+
+  const handleExportResult = useCallback((result: QueryResult) => {
+    exportToCSV(result.data, `${result.name.replace(/[^\w\s]/gi, '_')}.csv`)
+    toast.success('导出成功!', {
+      description: `已导出 ${result.data.length} 行数据`
+    })
+  }, [])
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
@@ -165,7 +204,7 @@ function App() {
             <TimelineChart data={filteredData} columns={columns} />
 
             <Tabs defaultValue="table" className="w-full">
-              <TabsList className="grid w-full max-w-2xl grid-cols-4">
+              <TabsList className="grid w-full max-w-2xl grid-cols-5">
                 <TabsTrigger value="table" className="gap-2">
                   <Table size={18} weight="bold" />
                   <span className="hidden sm:inline">Table</span>
@@ -181,6 +220,10 @@ function App() {
                 <TabsTrigger value="correlation" className="gap-2">
                   <ArrowsInLineVertical size={18} weight="bold" />
                   <span className="hidden sm:inline">Correlation</span>
+                </TabsTrigger>
+                <TabsTrigger value="sql" className="gap-2">
+                  <Code size={18} weight="bold" />
+                  <span className="hidden sm:inline">SQL</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -206,6 +249,22 @@ function App() {
                   <ScatterPlot 
                     data={filteredData}
                     columns={columns}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="sql" className="mt-6">
+                <div className="space-y-6">
+                  <SqlQueryPanel
+                    data={filteredData}
+                    columns={columns}
+                    onQueryResult={handleQueryResult}
+                  />
+                  
+                  <QueryResults
+                    results={queryResults}
+                    onRemoveResult={handleRemoveResult}
+                    onExportResult={handleExportResult}
                   />
                 </div>
               </TabsContent>
