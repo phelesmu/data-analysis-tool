@@ -95,6 +95,29 @@ function parseValue(value: unknown): string | number | null {
   return strValue
 }
 
+function isDateString(value: unknown): boolean {
+  if (typeof value !== 'string' && typeof value !== 'number') return false
+  
+  const str = String(value).trim()
+  if (str.length === 0) return false
+  
+  const datePatterns = [
+    /^\d{4}-\d{1,2}-\d{1,2}$/,
+    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
+    /^\d{1,2}-\d{1,2}-\d{4}$/,
+    /^\d{4}\/\d{1,2}\/\d{1,2}$/,
+    /^\d{1,2}\.\d{1,2}\.\d{4}$/,
+    /^\d{4}\.\d{1,2}\.\d{1,2}$/,
+  ]
+  
+  if (!datePatterns.some(pattern => pattern.test(str))) {
+    return false
+  }
+  
+  const date = new Date(str)
+  return !isNaN(date.getTime())
+}
+
 function detectColumns(data: DataRow[]): ColumnInfo[] {
   if (data.length === 0) return []
 
@@ -102,11 +125,25 @@ function detectColumns(data: DataRow[]): ColumnInfo[] {
   const columns: ColumnInfo[] = []
 
   Object.keys(firstRow).forEach(key => {
-    const isNumeric = data.slice(0, 10).some(row => typeof row[key] === 'number')
-    columns.push({
-      name: key,
-      type: isNumeric ? 'numeric' : 'text'
-    })
+    const sampleValues = data.slice(0, 20).map(row => row[key]).filter(val => val !== null)
+    
+    if (sampleValues.length === 0) {
+      columns.push({ name: key, type: 'text' })
+      return
+    }
+    
+    const isNumeric = sampleValues.some(val => typeof val === 'number')
+    const isDate = sampleValues.filter(val => typeof val === 'string').length > 0 &&
+                  sampleValues.filter(val => typeof val === 'string').every(val => isDateString(val))
+    
+    let type: 'numeric' | 'text' | 'date' = 'text'
+    if (isDate) {
+      type = 'date'
+    } else if (isNumeric) {
+      type = 'numeric'
+    }
+    
+    columns.push({ name: key, type })
   })
 
   return columns
@@ -153,7 +190,37 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
       
       if (!column) return true
 
-      if (column.type === 'numeric') {
+      if (column.type === 'date') {
+        const dateValue = columnValue !== null ? new Date(String(columnValue)) : null
+        const filterDate = filter.value ? new Date(filter.value) : null
+        const filterDateTo = filter.valueTo ? new Date(filter.valueTo) : null
+
+        if (!dateValue || isNaN(dateValue.getTime())) return false
+
+        const dateValueTime = new Date(dateValue.toDateString()).getTime()
+        const filterDateTime = filterDate ? new Date(filterDate.toDateString()).getTime() : null
+        const filterDateToTime = filterDateTo ? new Date(filterDateTo.toDateString()).getTime() : null
+
+        switch (filter.operator) {
+          case 'equals':
+            return filterDateTime !== null && dateValueTime === filterDateTime
+          case 'notEquals':
+            return filterDateTime !== null && dateValueTime !== filterDateTime
+          case 'after':
+            return filterDateTime !== null && dateValueTime > filterDateTime
+          case 'before':
+            return filterDateTime !== null && dateValueTime < filterDateTime
+          case 'onOrAfter':
+            return filterDateTime !== null && dateValueTime >= filterDateTime
+          case 'onOrBefore':
+            return filterDateTime !== null && dateValueTime <= filterDateTime
+          case 'between':
+            return filterDateTime !== null && filterDateToTime !== null && 
+                   dateValueTime >= filterDateTime && dateValueTime <= filterDateToTime
+          default:
+            return true
+        }
+      } else if (column.type === 'numeric') {
         const numValue = typeof columnValue === 'number' ? columnValue : null
         const filterValue = filter.value ? Number(filter.value) : null
         const filterValueTo = filter.valueTo ? Number(filter.valueTo) : null

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Funnel, X, Plus, CaretDown } from '@phosphor-icons/react'
+import { Funnel, X, Plus, CaretDown, CalendarBlank } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { format } from 'date-fns'
 import type { DataRow, ColumnInfo, FilterConfig } from '@/lib/types'
 
 interface DataFiltersProps {
@@ -50,7 +53,17 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
     const column = columns.find(c => c.name === columnName)
     if (!column) return []
 
-    if (column.type === 'numeric') {
+    if (column.type === 'date') {
+      return [
+        { value: 'equals', label: 'On Date' },
+        { value: 'notEquals', label: 'Not On Date' },
+        { value: 'after', label: 'After' },
+        { value: 'before', label: 'Before' },
+        { value: 'onOrAfter', label: 'On or After' },
+        { value: 'onOrBefore', label: 'On or Before' },
+        { value: 'between', label: 'Between' }
+      ]
+    } else if (column.type === 'numeric') {
       return [
         { value: 'equals', label: 'Equals' },
         { value: 'notEquals', label: 'Not Equals' },
@@ -181,13 +194,39 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                             <Label htmlFor={`value-${filter.id}`} className="text-xs mb-1">
                               {isBetween ? 'From' : 'Value'}
                             </Label>
-                            <Input
-                              id={`value-${filter.id}`}
-                              type={column?.type === 'numeric' ? 'number' : 'text'}
-                              value={filter.value}
-                              onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                              placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
-                            />
+                            {column?.type === 'date' ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="w-full justify-start text-left font-normal"
+                                  >
+                                    <CalendarBlank size={16} weight="bold" className="mr-2" />
+                                    {filter.value ? format(new Date(filter.value), 'PPP') : 'Select date'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={filter.value ? new Date(filter.value) : undefined}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        updateFilter(filter.id, { value: format(date, 'yyyy-MM-dd') })
+                                      }
+                                    }}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <Input
+                                id={`value-${filter.id}`}
+                                type={column?.type === 'numeric' ? 'number' : 'text'}
+                                value={filter.value}
+                                onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                                placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
+                              />
+                            )}
                           </div>
                         </div>
 
@@ -204,13 +243,39 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                       {isBetween && (
                         <div className="pl-0 sm:pl-[calc(66.666%+0.5rem)]">
                           <Label htmlFor={`valueTo-${filter.id}`} className="text-xs mb-1">To</Label>
-                          <Input
-                            id={`valueTo-${filter.id}`}
-                            type={column?.type === 'numeric' ? 'number' : 'text'}
-                            value={filter.valueTo || ''}
-                            onChange={(e) => updateFilter(filter.id, { valueTo: e.target.value })}
-                            placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
-                          />
+                          {column?.type === 'date' ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-start text-left font-normal"
+                                >
+                                  <CalendarBlank size={16} weight="bold" className="mr-2" />
+                                  {filter.valueTo ? format(new Date(filter.valueTo), 'PPP') : 'Select date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={filter.valueTo ? new Date(filter.valueTo) : undefined}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      updateFilter(filter.id, { valueTo: format(date, 'yyyy-MM-dd') })
+                                    }
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <Input
+                              id={`valueTo-${filter.id}`}
+                              type={column?.type === 'numeric' ? 'number' : 'text'}
+                              value={filter.valueTo || ''}
+                              onChange={(e) => updateFilter(filter.id, { valueTo: e.target.value })}
+                              placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
+                            />
+                          )}
                         </div>
                       )}
                     </div>

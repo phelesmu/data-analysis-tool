@@ -4,7 +4,7 @@ export interface DataRow {
 
 export interface ColumnInfo {
   name: string
-  type: 'numeric' | 'text'
+  type: 'numeric' | 'text' | 'date'
 }
 
 export interface Statistics {

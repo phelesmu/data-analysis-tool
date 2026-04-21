@@ -47,12 +47,20 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Progression**: User opens dropdown → Available columns list → User selects columns → Charts and stats update
 - **Success criteria**: Only selected columns appear in visualizations and statistical summaries
 
+### Data Filtering
+- **Functionality**: Allows users to filter data by specific criteria including text matching, numeric ranges, and date ranges
+- **Purpose**: Enables users to focus analysis on specific subsets of data based on column values
+- **Trigger**: User expands filter panel and adds filter conditions
+- **Progression**: User clicks filter panel → Selects column → Chooses operator (equals, contains, between, after, before, etc.) → Inputs value(s) → Filtered data displays → Statistics and charts update
+- **Success criteria**: Filters apply correctly to all data types, multiple filters work together (AND logic), active filter count displays, filtered row count updates
+
 ## Edge Case Handling
 
 - **Invalid File Format**: Display clear error message "Please upload a valid Excel or CSV file" with supported format list
 - **Empty File**: Show message "The uploaded file contains no data" and prompt to upload different file
 - **Large Files**: Display loading indicator during parsing, handle files up to reasonable size (5MB limit recommended)
 - **Non-Numeric Data**: Only show statistics for numeric columns, handle text columns gracefully in table view
+- **Date Columns**: Automatically detect date columns and provide date-specific filtering with calendar picker
 - **Malformed Data**: Catch parsing errors and display "Unable to parse file" with suggestion to check file format
 - **Missing Headers**: Auto-generate column names (Column A, Column B, etc.) if first row isn't headers
 
@@ -97,14 +105,17 @@ Animations should reinforce data interactions and state changes, creating a sens
 ## Component Selection
 
 - **Components**: 
-  - Card (shadcn) - For statistics summary panels and chart containers with subtle shadows
+  - Card (shadcn) - For statistics summary panels, chart containers, and filter panels with subtle shadows
   - Table (shadcn) - For data grid display with sorting capabilities
   - Button (shadcn) - Primary actions like "Upload File" and "Export" with hover states
   - Select (shadcn) - For column selection and chart type switching with smooth dropdowns
   - Tabs (shadcn) - To switch between Table View, Charts, and Statistics panels
-  - Badge (shadcn) - To display data types (numeric, text) and row counts
+  - Badge (shadcn) - To display data types (numeric, text, date) and active filter counts
   - ScrollArea (shadcn) - For smooth scrolling through large datasets
   - Progress (shadcn) - For file upload progress indication
+  - Calendar (shadcn) - For date range selection in filters with intuitive date picker
+  - Popover (shadcn) - For calendar dropdown in date filters
+  - Collapsible (shadcn) - For expandable filter panel
 
 - **Customizations**: 
   - Custom file upload dropzone with drag-over state highlighting
@@ -127,6 +138,10 @@ Animations should reinforce data interactions and state changes, creating a sens
   - SortAscending/SortDescending (Phosphor) - Column sorting
   - DownloadSimple (Phosphor) - Export functionality
   - X (Phosphor) - Clear/remove actions
+  - Funnel (Phosphor) - Filter panel icon
+  - Plus (Phosphor) - Add filter action
+  - CalendarBlank (Phosphor) - Date picker trigger
+  - CaretDown (Phosphor) - Collapsible toggle
 
 - **Spacing**: 
   - Container padding: `p-8` (2rem) for main content areas
