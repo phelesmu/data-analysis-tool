@@ -15,8 +15,9 @@ import { ScatterPlot } from '@/components/ScatterPlot'
 import { SqlQueryPanel } from '@/components/SqlQueryPanel'
 import { QueryResults } from '@/components/QueryResults'
 import { JoinPanel } from '@/components/JoinPanel'
+import { RelationshipDiagram } from '@/components/RelationshipDiagram'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
-import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from '@/lib/types'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, JoinRelationship } from '@/lib/types'
 
 interface QueryResult {
   id: string
@@ -37,6 +38,7 @@ function App() {
   const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null)
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
   const [queryResults, setQueryResults] = useState<QueryResult[]>([])
+  const [joinHistory, setJoinHistory] = useState<JoinRelationship[]>([])
 
   const filteredData = useMemo(() => {
     let result = applyFilters(data, filters, columns)
@@ -117,7 +119,7 @@ function App() {
     setDateRangeEnd(null)
   }
 
-  const handleQueryResult = useCallback((resultData: DataRow[], resultColumns: ColumnInfo[], queryName: string) => {
+  const handleQueryResult = useCallback((resultData: DataRow[], resultColumns: ColumnInfo[], queryName: string, joinRelationship?: JoinRelationship) => {
     const newResult: QueryResult = {
       id: `query-${Date.now()}`,
       name: queryName,
@@ -127,6 +129,10 @@ function App() {
     }
     
     setQueryResults(prev => [...prev, newResult])
+    
+    if (joinRelationship) {
+      setJoinHistory(prev => [...prev, joinRelationship])
+    }
     
     toast.success('查询执行成功!', {
       description: `生成了 ${resultData.length} 行 × ${resultColumns.length} 列的结果`
@@ -265,6 +271,11 @@ function App() {
                   <JoinPanel
                     queryResults={queryResults}
                     onJoinResult={handleQueryResult}
+                  />
+                  
+                  <RelationshipDiagram
+                    queryResults={queryResults}
+                    joinHistory={joinHistory}
                   />
                   
                   <QueryResults

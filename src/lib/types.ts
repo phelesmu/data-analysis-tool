@@ -37,3 +37,13 @@ export interface FilterConfig {
   value: string
   valueTo?: string
 }
+
+export interface JoinRelationship {
+  id: string
+  leftTable: string
+  rightTable: string
+  leftColumn: string
+  rightColumn: string
+  joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL'
+  resultName: string
+}

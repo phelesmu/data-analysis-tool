@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowsLeftRight, Play, Info } from '@phosphor-icons/react'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import type { DataRow, ColumnInfo } from '@/lib/types'
+import type { DataRow, ColumnInfo, JoinRelationship } from '@/lib/types'
 
 interface QueryResult {
   id: string
@@ -18,7 +18,7 @@ interface QueryResult {
 
 interface JoinPanelProps {
   queryResults: QueryResult[]
-  onJoinResult: (result: DataRow[], columns: ColumnInfo[], joinName: string) => void
+  onJoinResult: (result: DataRow[], columns: ColumnInfo[], joinName: string, joinRelationship: JoinRelationship) => void
 }
 
 type JoinType = 'INNER' | 'LEFT' | 'RIGHT' | 'FULL'
@@ -129,7 +129,18 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
         })
 
         const joinName = `${joinType} JOIN: ${leftTableData.name} ⋈ ${rightTableData.name}`
-        onJoinResult(fullResult, newColumns, joinName)
+        
+        const joinRelationship: JoinRelationship = {
+          id: `join-${Date.now()}`,
+          leftTable: leftTable,
+          rightTable: rightTable,
+          leftColumn: leftColumn,
+          rightColumn: rightColumn,
+          joinType: joinType,
+          resultName: joinName
+        }
+        
+        onJoinResult(fullResult, newColumns, joinName, joinRelationship)
         return
       }
 
@@ -151,7 +162,18 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
       })
 
       const joinName = `${joinType} JOIN: ${leftTableData.name} ⋈ ${rightTableData.name}`
-      onJoinResult(result, newColumns, joinName)
+      
+      const joinRelationship: JoinRelationship = {
+        id: `join-${Date.now()}`,
+        leftTable: leftTable,
+        rightTable: rightTable,
+        leftColumn: leftColumn,
+        rightColumn: rightColumn,
+        joinType: joinType,
+        resultName: joinName
+      }
+      
+      onJoinResult(result, newColumns, joinName, joinRelationship)
 
       setLeftTable('')
       setRightTable('')

@@ -79,8 +79,15 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Functionality**: Combines multiple saved query result tables using SQL JOIN operations (INNER, LEFT, RIGHT, FULL)
 - **Purpose**: Allows users to merge related datasets by matching column values, enabling relational analysis across multiple query results
 - **Trigger**: User creates at least 2 query results, then uses JOIN panel in SQL tab
-- **Progression**: User selects left table → Selects right table → Chooses join columns from each → Selects JOIN type → Executes JOIN → Combined result table generated → Result saved to query results list
-- **Success criteria**: All JOIN types work correctly, column prefixes prevent name conflicts (L_ and R_), JOIN preview shows operation details, joined results display with full statistics and visualization capabilities
+- **Progression**: User selects left table → Selects right table → Chooses join columns from each → Selects JOIN type → Executes JOIN → Combined result table generated → Result saved to query results list → Relationship diagram updates
+- **Success criteria**: All JOIN types work correctly, column prefixes prevent name conflicts (L_ and R_), JOIN preview shows operation details, joined results display with full statistics and visualization capabilities, relationship diagram displays the JOIN connection
+
+### Relationship Diagram
+- **Functionality**: Generates interactive visual graph showing relationships between query result tables and JOIN operations using D3 force-directed layout
+- **Purpose**: Provides visual understanding of table dependencies and JOIN connections, making complex data relationships clear at a glance
+- **Trigger**: Automatic rendering after JOIN operations are performed, visible in SQL tab
+- **Progression**: JOIN executes → Diagram updates with new nodes and edges → Original tables displayed as white rectangles, JOIN results as purple rectangles → Lines show JOIN connections → User can drag nodes to rearrange layout → Hover for details → Zoom and pan for navigation
+- **Success criteria**: Diagram accurately represents table relationships, nodes are draggable for custom layouts, zoom/pan controls work smoothly, color coding distinguishes source tables from JOIN results, connection lines clearly show which tables participate in each JOIN
 
 ## Edge Case Handling
 
@@ -95,6 +102,7 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Missing Values**: Handle null values in correlation calculations by excluding them from statistical computations
 - **JOIN with No Matches**: Display helpful message when JOIN returns no rows, suggesting different join columns or JOIN type
 - **Fewer than 2 Query Results**: Show placeholder in JOIN panel explaining at least 2 query results are needed
+- **No JOIN Relationships**: Show placeholder in relationship diagram when no JOINs have been performed yet
 
 ## Design Direction
 
@@ -160,6 +168,7 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Custom correlation matrix heatmap with color-coded cells based on correlation strength
   - Custom JOIN preview panel showing operation details before execution
   - Syntax-highlighted SQL query textarea with monospace font
+  - Interactive force-directed graph for relationship diagram with draggable nodes and zoom/pan controls
 
 - **States**: 
   - Buttons: Default (solid primary), hover (slightly lighter with shadow lift), active (pressed down with darker shade), disabled (muted with reduced opacity)
@@ -185,6 +194,7 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Code (Phosphor) - SQL query tab
   - Play (Phosphor) - Execute query/JOIN button
   - ArrowsLeftRight (Phosphor) - JOIN operations icon
+  - GitFork (Phosphor) - Relationship diagram icon
 
 - **Spacing**: 
   - Container padding: `p-8` (2rem) for main content areas
@@ -206,3 +216,4 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Top correlations list displays one per row on mobile for better readability
   - SQL query editor and JOIN panel stack vertically with full-width controls
   - JOIN table selection cards stack vertically on mobile instead of side-by-side
+  - Relationship diagram remains interactive on mobile with touch-based zoom/pan and node dragging
