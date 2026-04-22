@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { Toaster, toast } from 'sonner'
-import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple } from '@phosphor-icons/react'
+import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple, Clock, Plus, X } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/FileUpload'
@@ -19,6 +19,8 @@ import { RelationshipDiagram } from '@/components/RelationshipDiagram'
 import { GroupByPanel } from '@/components/GroupByPanel'
 import { AggregatedBarChart } from '@/components/AggregatedBarChart'
 import { DataSourceSelector, type DataSource } from '@/components/DataSourceSelector'
+import { TimeCompare } from '@/components/TimeCompare'
+import { Badge } from '@/components/ui/badge'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, JoinRelationship } from '@/lib/types'
 
@@ -42,7 +44,9 @@ function App() {
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
   const [queryResults, setQueryResults] = useState<QueryResult[]>([])
   const [joinHistory, setJoinHistory] = useState<JoinRelationship[]>([])
+  const [extraDatasets, setExtraDatasets] = useState<{ id: string; name: string; data: DataRow[]; columns: ColumnInfo[] }[]>([])
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>('main')
+  const extraFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const filteredData = useMemo(() => {
     let result = applyFilters(data, filters, columns)
@@ -56,27 +60,37 @@ function App() {
 
   const dataSources = useMemo<DataSource[]>(() => {
     const sources: DataSource[] = []
-    
+
     if (data.length > 0) {
       sources.push({
         id: 'main',
-        name: `Main Dataset (${fileName})`,
+        name: `Main: ${fileName} (filtered)`,
         data: filteredData,
-        columns: columns
+        columns: columns,
+      })
+      sources.push({
+        id: 'main-raw',
+        name: `Main: ${fileName} (raw)`,
+        data: data,
+        columns: columns,
       })
     }
-    
+
+    extraDatasets.forEach((d) => {
+      sources.push({ id: d.id, name: `File: ${d.name}`, data: d.data, columns: d.columns })
+    })
+
     queryResults.forEach((result) => {
       sources.push({
         id: result.id,
-        name: result.name,
+        name: `Query: ${result.name}`,
         data: result.data,
-        columns: result.columns
+        columns: result.columns,
       })
     })
-    
+
     return sources
-  }, [data, fileName, filteredData, columns, queryResults])
+  }, [data, fileName, filteredData, columns, extraDatasets, queryResults])
 
   const selectedDataSource = useMemo(() => {
     return dataSources.find(s => s.id === selectedDataSourceId) || dataSources[0]
@@ -174,6 +188,34 @@ function App() {
     setDateRangeColumn('')
     setDateRangeStart(null)
     setDateRangeEnd(null)
+    setExtraDatasets([])
+    setQueryResults([])
+    setJoinHistory([])
+    setSelectedDataSourceId('main')
+  }
+
+  const handleAddExtraFile = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large', { description: 'Files must be smaller than 5 MB.' })
+      return
+    }
+    try {
+      const result = await parseFile(file)
+      const id = `extra-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+      setExtraDatasets(prev => [...prev, { id, name: file.name, data: result.data, columns: result.columns }])
+      toast.success('Added another file', {
+        description: `${file.name} • ${result.data.length.toLocaleString()} rows × ${result.columns.length} columns`,
+      })
+    } catch (error) {
+      toast.error('Failed to add file', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  const handleRemoveExtraDataset = (id: string) => {
+    setExtraDatasets(prev => prev.filter(d => d.id !== id))
+    if (selectedDataSourceId === id) setSelectedDataSourceId('main')
   }
 
   const handleQueryResult = useCallback((resultData: DataRow[], resultColumns: ColumnInfo[], queryName: string, joinRelationship?: JoinRelationship) => {
@@ -224,10 +266,27 @@ function App() {
               </p>
             </div>
             {data.length > 0 && (
-              <Button onClick={handleReset} variant="outline" size="lg">
-                <UploadSimple size={20} weight="bold" className="mr-2" />
-                Upload New File
-              </Button>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={extraFileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleAddExtraFile(f)
+                    e.target.value = ''
+                  }}
+                />
+                <Button onClick={() => extraFileInputRef.current?.click()} variant="outline" size="lg">
+                  <Plus size={20} weight="bold" className="mr-2" />
+                  Add another file
+                </Button>
+                <Button onClick={handleReset} variant="outline" size="lg">
+                  <UploadSimple size={20} weight="bold" className="mr-2" />
+                  Upload New File
+                </Button>
+              </div>
             )}
           </div>
         </header>
@@ -238,7 +297,7 @@ function App() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Current File:</span>
               <span>{fileName}</span>
               <span className="text-xs">•</span>
@@ -247,6 +306,26 @@ function App() {
                 <>
                   <span className="text-xs">•</span>
                   <span className="text-accent font-medium">{filteredData.length} filtered rows</span>
+                </>
+              )}
+              {extraDatasets.length > 0 && (
+                <>
+                  <span className="text-xs">•</span>
+                  <span className="text-foreground">Extra files:</span>
+                  {extraDatasets.map(d => (
+                    <Badge key={d.id} variant="secondary" className="gap-1 pr-1">
+                      <span className="truncate max-w-[160px]">{d.name}</span>
+                      <span className="text-[10px] opacity-70">({d.data.length})</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExtraDataset(d.id)}
+                        className="ml-1 rounded-sm hover:bg-destructive/10 p-0.5"
+                        aria-label={`Remove ${d.name}`}
+                      >
+                        <X size={12} weight="bold" />
+                      </button>
+                    </Badge>
+                  ))}
                 </>
               )}
             </div>
@@ -268,7 +347,7 @@ function App() {
             <TimelineChart data={filteredData} columns={columns} />
 
             <Tabs defaultValue="table" className="w-full">
-              <TabsList className="grid w-full max-w-2xl grid-cols-6">
+              <TabsList className="grid w-full max-w-3xl grid-cols-7">
                 <TabsTrigger value="table" className="gap-2">
                   <Table size={18} weight="bold" />
                   <span className="hidden sm:inline">Table</span>
@@ -289,6 +368,10 @@ function App() {
                   <FunnelSimple size={18} weight="bold" />
                   <span className="hidden sm:inline">Group By</span>
                 </TabsTrigger>
+                <TabsTrigger value="time" className="gap-2">
+                  <Clock size={18} weight="bold" />
+                  <span className="hidden sm:inline">Time</span>
+                </TabsTrigger>
                 <TabsTrigger value="sql" className="gap-2">
                   <Code size={18} weight="bold" />
                   <span className="hidden sm:inline">SQL</span>
@@ -296,7 +379,19 @@ function App() {
               </TabsList>
 
               <TabsContent value="table" className="mt-6">
-                <DataTable data={filteredData} columns={columns} />
+                <div className="space-y-4">
+                  {dataSources.length > 0 && (
+                    <DataSourceSelector
+                      currentSource={selectedDataSourceId}
+                      sources={dataSources}
+                      onSourceChange={setSelectedDataSourceId}
+                    />
+                  )}
+                  <DataTable
+                    data={selectedDataSource?.data || filteredData}
+                    columns={selectedDataSource?.columns || columns}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="charts" className="mt-6">
@@ -348,6 +443,14 @@ function App() {
                     columns={selectedDataSource?.columns || columns}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="time" className="mt-6">
+                <TimeCompare
+                  sources={dataSources}
+                  currentSourceId={selectedDataSourceId}
+                  onSourceChange={setSelectedDataSourceId}
+                />
               </TabsContent>
 
               <TabsContent value="groupby" className="mt-6">
