@@ -1,8 +1,9 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import * as d3 from 'd3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { GitFork } from '@phosphor-icons/react'
+import { GitFork, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 import type { DataRow, ColumnInfo } from '@/lib/types'
 
 interface QueryResult {
@@ -63,6 +64,19 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
   })
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
   const [hoveredColumnName, setHoveredColumnName] = useState<string | null>(null)
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
+
+  const toggleNodeCollapse = (nodeId: string) => {
+    setCollapsedNodes(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId)
+      } else {
+        newSet.add(nodeId)
+      }
+      return newSet
+    })
+  }
 
   const { nodes, links } = useMemo(() => {
     const nodeMap = new Map<string, Node>()
@@ -436,6 +450,8 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
             const tooltipNode = nodes.find(n => n.id === tooltip.nodeId)
             if (!tooltipNode) return null
             
+            const isCollapsed = collapsedNodes.has(tooltipNode.id)
+            
             return (
               <div
                 className="absolute z-50"
@@ -449,20 +465,40 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
                 <div className="bg-card border-2 border-border rounded-lg shadow-xl p-4 font-mono text-xs">
                   <div className="space-y-3">
                     <div className="pb-2 border-b border-border">
-                      <div className="font-bold text-sm text-foreground mb-1">
-                        {tooltipNode.name}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {tooltipNode.rowCount} 行 × {tooltipNode.columnCount} 列
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="font-bold text-sm text-foreground mb-1">
+                            {tooltipNode.name}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {tooltipNode.rowCount} 行 × {tooltipNode.columnCount} 列
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-accent/20"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleNodeCollapse(tooltipNode.id)
+                          }}
+                        >
+                          {isCollapsed ? (
+                            <CaretDown size={16} weight="bold" />
+                          ) : (
+                            <CaretUp size={16} weight="bold" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                     
-                    <div>
-                      <div className="text-muted-foreground mb-2 font-semibold">
-                        列详情 {highlightedColumn && <span className="text-accent">(点击列名高亮关系)</span>}:
-                      </div>
-                      <div className="space-y-1 max-h-64 overflow-y-auto">
-                        {tooltipNode.columns.map((col: ColumnInfo, idx: number) => {
+                    {!isCollapsed && (
+                      <div>
+                        <div className="text-muted-foreground mb-2 font-semibold">
+                          列详情 {highlightedColumn && <span className="text-accent">(点击列名高亮关系)</span>}:
+                        </div>
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {tooltipNode.columns.map((col: ColumnInfo, idx: number) => {
                           const relatedLinks = getRelatedLinks(col.name, tooltipNode.id)
                           const hasRelationships = relatedLinks.length > 0
                           const isHighlighted = highlightedColumn === col.name
@@ -526,6 +562,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
                         })}
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
