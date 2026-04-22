@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import * as d3 from 'd3'
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorageState as useKV } from '@/hooks/useLocalStorageState'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { GitFork, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'

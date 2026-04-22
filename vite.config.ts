@@ -2,7 +2,6 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig, PluginOption } from "vite";
 
-import sparkPlugin from "@github/spark/spark-vite-plugin";
 import createIconImportProxy from "@github/spark/vitePhosphorIconProxyPlugin";
 import { resolve } from 'path'
 
@@ -10,16 +9,22 @@ const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
-    // DO NOT REMOVE
+    // Keeps Phosphor icons tree-shakable; this is a pure client-side build plugin.
     createIconImportProxy() as PluginOption,
-    sparkPlugin() as PluginOption,
   ],
   resolve: {
     alias: {
       '@': resolve(projectRoot, 'src')
     }
+  },
+  server: {
+    port: 5000,
+  },
+  preview: {
+    port: 5000,
   },
 });

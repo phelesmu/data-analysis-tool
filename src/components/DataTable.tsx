@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorageState as useKV } from '@/hooks/useLocalStorageState'
 import { SortAscending, SortDescending, Columns } from '@phosphor-icons/react'
 import {
   Table,
