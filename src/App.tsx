@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -79,13 +79,16 @@ function App() {
   }, [data, fileName, filteredData, columns, queryResults])
 
   const selectedDataSource = useMemo(() => {
-    return dataSources.find(s => s.id === selectedDataSourceId) || dataSources[0]
+    const source = dataSources.find(s => s.id === selectedDataSourceId)
+    if (source) return source
+    if (dataSources.length > 0) return dataSources[0]
+    return null
   }, [dataSources, selectedDataSourceId])
 
   const filteredStatistics = useMemo(() => {
     if (!selectedDataSource) return []
     return calculateStatistics(selectedDataSource.data, selectedDataSource.columns)
-  }, [selectedDataSource])
+  }, [selectedDataSource?.data, selectedDataSource?.columns])
 
   const correlationMatrix = useMemo(() => {
     if (!selectedDataSource) return { columns: [], matrix: [] }
@@ -121,7 +124,6 @@ function App() {
 
   const handleFileSelect = async (file: File) => {
     setIsLoading(true)
-    setFileName(file.name)
 
     let toastId: string | number | undefined
 
@@ -138,6 +140,7 @@ function App() {
         toast.dismiss(toastId)
       }
       
+      setFileName(file.name)
       setData(result.data)
       setColumns(result.columns)
       
