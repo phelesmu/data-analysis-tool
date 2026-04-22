@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import * as d3 from 'd3'
+import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { GitFork, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -64,17 +65,19 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
   })
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
   const [hoveredColumnName, setHoveredColumnName] = useState<string | null>(null)
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set())
+  const [collapsedNodesArray, setCollapsedNodesArray] = useKV<string[]>('diagram-collapsed-nodes', [])
+
+  const collapsedNodes = useMemo(() => new Set(collapsedNodesArray), [collapsedNodesArray])
 
   const toggleNodeCollapse = (nodeId: string) => {
-    setCollapsedNodes(prev => {
-      const newSet = new Set(prev)
+    setCollapsedNodesArray(currentCollapsed => {
+      const newSet = new Set(currentCollapsed)
       if (newSet.has(nodeId)) {
         newSet.delete(nodeId)
       } else {
         newSet.add(nodeId)
       }
-      return newSet
+      return Array.from(newSet)
     })
   }
 
