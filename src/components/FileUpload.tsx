@@ -42,15 +42,22 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     const validExtensions = ['.csv', '.xlsx', '.xls']
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
     
-    if (validExtensions.includes(fileExtension)) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB')
-        return
-      }
-      onFileSelect(file)
-    } else {
+    if (!validExtensions.includes(fileExtension)) {
       alert('Please upload a valid Excel or CSV file')
+      return
     }
+    
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File size must be less than 50MB')
+      return
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      const proceed = confirm('This is a large file (>10MB). It may take some time to process. Continue?')
+      if (!proceed) return
+    }
+    
+    onFileSelect(file)
   }
 
   const handleClick = () => {
@@ -94,7 +101,7 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
             Drag and drop or click to browse
           </p>
           <p className="text-xs text-muted-foreground">
-            Supports CSV, XLSX, and XLS files (max 5MB)
+            Supports CSV, XLSX, and XLS files (max 50MB, 10,000 rows)
           </p>
         </div>
         

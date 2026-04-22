@@ -5,7 +5,7 @@ export function parseFile(file: File): Promise<{ data: DataRow[]; columns: Colum
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result
         if (!data) {
@@ -16,9 +16,9 @@ export function parseFile(file: File): Promise<{ data: DataRow[]; columns: Colum
         let parsedData: DataRow[] = []
 
         if (file.name.endsWith('.csv')) {
-          parsedData = parseCSV(data as string)
+          parsedData = await parseCSVAsync(data as string)
         } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-          parsedData = parseExcel(data as ArrayBuffer)
+          parsedData = await parseExcelAsync(data as ArrayBuffer)
         } else {
           reject(new Error('Unsupported file format'))
           return
@@ -32,7 +32,8 @@ export function parseFile(file: File): Promise<{ data: DataRow[]; columns: Colum
         const columns = detectColumns(parsedData)
         resolve({ data: parsedData, columns })
       } catch (error) {
-        reject(new Error('Unable to parse file. Please check the file format.'))
+        console.error('Parse error:', error)
+        reject(new Error(error instanceof Error ? error.message : 'Unable to parse file. Please check the file format.'))
       }
     }
 
@@ -95,10 +96,29 @@ function parseCSV(text: string): DataRow[] {
   return data
 }
 
+async function parseCSVAsync(text: string): Promise<DataRow[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(parseCSV(text))
+    }, 0)
+  })
+}
+
 function parseExcel(data: ArrayBuffer): DataRow[] {
-  const workbook = XLSX.read(data, { type: 'array', cellDates: true })
+  const workbook = XLSX.read(data, { 
+    type: 'array', 
+    cellDates: true,
+    sheetRows: 10000
+  })
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null, raw: false })
+  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+    defval: null, 
+    raw: false
+  })
+  
+  if (jsonData.length > 10000) {
+    console.warn('File contains more than 10,000 rows. Only the first 10,000 will be loaded.')
+  }
   
   return jsonData.map(row => {
     const dataRow: DataRow = {}
@@ -106,6 +126,19 @@ function parseExcel(data: ArrayBuffer): DataRow[] {
       dataRow[key] = parseValue(value)
     })
     return dataRow
+  })
+}
+
+async function parseExcelAsync(data: ArrayBuffer): Promise<DataRow[]> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        const result = parseExcel(data)
+        resolve(result)
+      } catch (error) {
+        reject(error)
+      }
+    }, 0)
   })
 }
 
