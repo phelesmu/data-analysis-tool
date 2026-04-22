@@ -160,14 +160,17 @@ export function DataTable({ data, columns }: DataTableProps) {
         <ScrollArea className="h-[500px]">
           <div className="min-w-max">
             <Table>
-              <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+              <TableHeader className="sticky top-0 z-20 bg-card shadow-[0_1px_0_0_var(--border)]">
                 <TableRow>
-                  {displayColumns.map((column, columnIndex) => (
+                  <TableHead
+                    className="sticky left-0 z-30 bg-accent/40 border-r-2 border-accent text-center font-semibold w-[64px] min-w-[64px]"
+                  >
+                    #
+                  </TableHead>
+                  {displayColumns.map((column) => (
                     <TableHead 
                       key={column.name}
-                      className={`cursor-pointer hover:bg-muted/50 transition-colors min-w-[120px] ${
-                        columnIndex === 0 ? 'bg-accent/30 border-r-2 border-accent' : ''
-                      }`}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors min-w-[120px] bg-card"
                       onClick={() => handleSort(column.name)}
                     >
                       <div className="flex items-center gap-2">
@@ -188,12 +191,15 @@ export function DataTable({ data, columns }: DataTableProps) {
               <TableBody>
                 {sortedData.map((row, rowIndex) => (
                   <TableRow key={rowIndex} className="hover:bg-muted/30">
-                    {displayColumns.map((column, columnIndex) => (
+                    <TableCell
+                      className="sticky left-0 z-10 bg-accent/10 border-r-2 border-accent/30 text-center font-mono tabular-nums text-xs text-muted-foreground w-[64px] min-w-[64px]"
+                    >
+                      {rowIndex + 1}
+                    </TableCell>
+                    {displayColumns.map((column) => (
                       <TableCell 
                         key={`${rowIndex}-${column.name}`}
-                        className={`${column.type === 'numeric' ? 'font-mono tabular-nums' : ''} ${
-                          columnIndex === 0 ? 'bg-accent/5 border-r-2 border-accent/30' : ''
-                        }`}
+                        className={column.type === 'numeric' ? 'font-mono tabular-nums' : ''}
                       >
                         {row[column.name] !== null ? String(row[column.name]) : '—'}
                       </TableCell>
