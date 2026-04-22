@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple, Clock, Plus, X } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

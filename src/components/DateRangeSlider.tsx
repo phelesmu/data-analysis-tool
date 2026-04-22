@@ -89,7 +89,7 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
     } else if (!isActive) {
       onDateRangeChange('', null, null)
     }
-  }, [isActive, selectedColumn, selectedDates, onDateRangeChange])
+  }, [isActive, selectedColumn, selectedDates])
 
   const handleReset = () => {
     setSliderValues([0, 100])
