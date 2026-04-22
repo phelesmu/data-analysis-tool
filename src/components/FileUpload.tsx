@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { UploadSimple, CheckCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void
@@ -43,18 +44,17 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
     
     if (!validExtensions.includes(fileExtension)) {
-      alert('Please upload a valid Excel or CSV file')
+      toast.error('Invalid file type', {
+        description: 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)'
+      })
       return
     }
     
     if (file.size > 50 * 1024 * 1024) {
-      alert('File size must be less than 50MB')
+      toast.error('File too large', {
+        description: 'File size must be less than 50MB'
+      })
       return
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      const proceed = confirm('This is a large file (>10MB). It may take some time to process. Continue?')
-      if (!proceed) return
     }
     
     onFileSelect(file)

@@ -49,96 +49,127 @@ export function parseFile(file: File): Promise<{ data: DataRow[]; columns: Colum
   })
 }
 
-function parseCSV(text: string): DataRow[] {
-  const lines = text.split('\n').filter(line => line.trim())
-  if (lines.length === 0) return []
-
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = []
-    let current = ''
-    let inQuotes = false
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
     
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-      
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"'
-          i++
-        } else {
-          inQuotes = !inQuotes
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim())
-        current = ''
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i++
       } else {
-        current += char
+        inQuotes = !inQuotes
       }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
     }
-    
-    result.push(current.trim())
-    return result
   }
-
-  const headers = parseCSVLine(lines[0])
-  const data: DataRow[] = []
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i])
-    const row: DataRow = {}
-    headers.forEach((header, index) => {
-      const value = values[index]?.trim() || ''
-      row[header] = parseValue(value)
-    })
-    data.push(row)
-  }
-
-  return data
+  
+  result.push(current.trim())
+  return result
 }
 
 async function parseCSVAsync(text: string): Promise<DataRow[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(parseCSV(text))
-    }, 0)
-  })
-}
+  return new Promise((resolve, reject) => {
+    try {
+      const lines = text.split('\n').filter(line => line.trim())
+      if (lines.length === 0) {
+        resolve([])
+        return
+      }
 
-function parseExcel(data: ArrayBuffer): DataRow[] {
-  const workbook = XLSX.read(data, { 
-    type: 'array', 
-    cellDates: true,
-    sheetRows: 10000
-  })
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
-    defval: null, 
-    raw: false
-  })
-  
-  if (jsonData.length > 10000) {
-    console.warn('File contains more than 10,000 rows. Only the first 10,000 will be loaded.')
-  }
-  
-  return jsonData.map(row => {
-    const dataRow: DataRow = {}
-    Object.entries(row as Record<string, unknown>).forEach(([key, value]) => {
-      dataRow[key] = parseValue(value)
-    })
-    return dataRow
+      if (lines.length > 10001) {
+        lines.splice(10001)
+      }
+
+      const headers = parseCSVLine(lines[0])
+      const data: DataRow[] = []
+      const CHUNK_SIZE = 500
+      let currentIndex = 1
+
+      const processChunk = () => {
+        const endIndex = Math.min(currentIndex + CHUNK_SIZE, lines.length)
+        
+        for (let i = currentIndex; i < endIndex; i++) {
+          const values = parseCSVLine(lines[i])
+          const row: DataRow = {}
+          headers.forEach((header, index) => {
+            const value = values[index]?.trim() || ''
+            row[header] = parseValue(value)
+          })
+          data.push(row)
+        }
+
+        currentIndex = endIndex
+
+        if (currentIndex < lines.length) {
+          setTimeout(processChunk, 0)
+        } else {
+          resolve(data)
+        }
+      }
+
+      processChunk()
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 
 async function parseExcelAsync(data: ArrayBuffer): Promise<DataRow[]> {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        const result = parseExcel(data)
-        resolve(result)
-      } catch (error) {
-        reject(error)
+    try {
+      const workbook = XLSX.read(data, { 
+        type: 'array', 
+        cellDates: true,
+        sheetRows: 10001
+      })
+      
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+        defval: null, 
+        raw: false
+      })
+      
+      if (jsonData.length > 10000) {
+        jsonData.splice(10000)
       }
-    }, 0)
+
+      const result: DataRow[] = []
+      const CHUNK_SIZE = 500
+      let currentIndex = 0
+
+      const processChunk = () => {
+        const endIndex = Math.min(currentIndex + CHUNK_SIZE, jsonData.length)
+        
+        for (let i = currentIndex; i < endIndex; i++) {
+          const dataRow: DataRow = {}
+          Object.entries(jsonData[i] as Record<string, unknown>).forEach(([key, value]) => {
+            dataRow[key] = parseValue(value)
+          })
+          result.push(dataRow)
+        }
+
+        currentIndex = endIndex
+
+        if (currentIndex < jsonData.length) {
+          setTimeout(processChunk, 0)
+        } else {
+          resolve(result)
+        }
+      }
+
+      processChunk()
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 

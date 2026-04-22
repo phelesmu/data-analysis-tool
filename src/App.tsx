@@ -91,14 +91,21 @@ function App() {
     setIsLoading(true)
     setFileName(file.name)
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.info('Processing large file...', {
-        description: 'This may take a moment. Please be patient.'
+    let toastId: string | number | undefined
+
+    if (file.size > 5 * 1024 * 1024) {
+      toastId = toast.loading('Processing file...', {
+        description: 'Please wait while we parse your data.'
       })
     }
 
     try {
       const result = await parseFile(file)
+      
+      if (toastId) {
+        toast.dismiss(toastId)
+      }
+      
       setData(result.data)
       setColumns(result.columns)
       
@@ -106,9 +113,13 @@ function App() {
       setStatistics(stats)
 
       toast.success('File uploaded successfully!', {
-        description: `Loaded ${result.data.length} rows and ${result.columns.length} columns`
+        description: `Loaded ${result.data.length.toLocaleString()} rows and ${result.columns.length} columns`
       })
     } catch (error) {
+      if (toastId) {
+        toast.dismiss(toastId)
+      }
+      
       console.error('File upload error:', error)
       toast.error('Upload failed', {
         description: error instanceof Error ? error.message : 'Failed to process file'
