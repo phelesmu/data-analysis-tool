@@ -239,6 +239,74 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
       
       if (!column) return true
 
+      if (filter.operator.startsWith('column')) {
+        const compareColumn = filter.compareToColumn
+        if (!compareColumn) return true
+        
+        const compareValue = row[compareColumn]
+        
+        if (column.type === 'date') {
+          const dateValue = columnValue !== null ? new Date(String(columnValue)) : null
+          const compareDateValue = compareValue !== null ? new Date(String(compareValue)) : null
+          
+          if (!dateValue || isNaN(dateValue.getTime()) || !compareDateValue || isNaN(compareDateValue.getTime())) return false
+          
+          const dateValueTime = new Date(dateValue.toDateString()).getTime()
+          const compareDateValueTime = new Date(compareDateValue.toDateString()).getTime()
+          
+          switch (filter.operator) {
+            case 'columnEquals':
+              return dateValueTime === compareDateValueTime
+            case 'columnNotEquals':
+              return dateValueTime !== compareDateValueTime
+            case 'columnAfter':
+              return dateValueTime > compareDateValueTime
+            case 'columnBefore':
+              return dateValueTime < compareDateValueTime
+            default:
+              return true
+          }
+        } else if (column.type === 'numeric') {
+          const numValue = typeof columnValue === 'number' ? columnValue : null
+          const compareNumValue = typeof compareValue === 'number' ? compareValue : null
+          
+          if (numValue === null || compareNumValue === null) return false
+          
+          switch (filter.operator) {
+            case 'columnEquals':
+              return numValue === compareNumValue
+            case 'columnNotEquals':
+              return numValue !== compareNumValue
+            case 'columnGreaterThan':
+              return numValue > compareNumValue
+            case 'columnLessThan':
+              return numValue < compareNumValue
+            case 'columnGreaterThanOrEqual':
+              return numValue >= compareNumValue
+            case 'columnLessThanOrEqual':
+              return numValue <= compareNumValue
+            default:
+              return true
+          }
+        } else {
+          const strValue = columnValue !== null ? String(columnValue).toLowerCase() : ''
+          const compareStrValue = compareValue !== null ? String(compareValue).toLowerCase() : ''
+          
+          switch (filter.operator) {
+            case 'columnEquals':
+              return strValue === compareStrValue
+            case 'columnNotEquals':
+              return strValue !== compareStrValue
+            case 'columnContains':
+              return strValue.includes(compareStrValue)
+            case 'columnIn':
+              return compareStrValue.includes(strValue)
+            default:
+              return true
+          }
+        }
+      }
+
       if (column.type === 'date') {
         const dateValue = columnValue !== null ? new Date(String(columnValue)) : null
         const filterDate = filter.value ? new Date(filter.value) : null

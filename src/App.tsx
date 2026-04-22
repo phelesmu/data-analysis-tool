@@ -63,7 +63,12 @@ function App() {
   }, [correlationMatrix])
 
   const activeFiltersCount = useMemo(() => {
-    let count = filters.filter(f => f.value.trim() !== '').length
+    let count = filters.filter(f => {
+      if (f.operator.startsWith('column')) {
+        return !!f.compareToColumn
+      }
+      return f.value.trim() !== ''
+    }).length
     if (dateRangeColumn && dateRangeStart && dateRangeEnd) {
       count += 1
     }
@@ -198,7 +203,7 @@ function App() {
               <DataFilters 
                 columns={columns} 
                 onFilterChange={handleFilterChange}
-                activeFiltersCount={filters.filter(f => f.value.trim() !== '').length}
+                activeFiltersCount={activeFiltersCount}
               />
 
               <DateRangeSlider

@@ -36,6 +36,7 @@ export interface FilterConfig {
   operator: string
   value: string
   valueTo?: string
+  compareToColumn?: string
 }
 
 export interface JoinRelationship {

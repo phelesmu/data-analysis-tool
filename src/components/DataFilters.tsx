@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Funnel, X, Plus, CaretDown, CalendarBlank } from '@phosphor-icons/react'
+import { Funnel, X, Plus, CaretDown, CalendarBlank, Columns } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import type { DataRow, ColumnInfo, FilterConfig } from '@/lib/types'
 
@@ -53,6 +54,11 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
     const column = columns.find(c => c.name === columnName)
     if (!column) return []
 
+    const commonCompareOps = [
+      { value: 'columnEquals', label: '= Column' },
+      { value: 'columnNotEquals', label: '≠ Column' }
+    ]
+
     if (column.type === 'date') {
       return [
         { value: 'equals', label: 'On Date' },
@@ -61,7 +67,10 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
         { value: 'before', label: 'Before' },
         { value: 'onOrAfter', label: 'On or After' },
         { value: 'onOrBefore', label: 'On or Before' },
-        { value: 'between', label: 'Between' }
+        { value: 'between', label: 'Between' },
+        ...commonCompareOps,
+        { value: 'columnAfter', label: '> Column' },
+        { value: 'columnBefore', label: '< Column' }
       ]
     } else if (column.type === 'numeric') {
       return [
@@ -71,7 +80,12 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
         { value: 'lessThan', label: 'Less Than' },
         { value: 'greaterThanOrEqual', label: 'Greater Than or Equal' },
         { value: 'lessThanOrEqual', label: 'Less Than or Equal' },
-        { value: 'between', label: 'Between' }
+        { value: 'between', label: 'Between' },
+        ...commonCompareOps,
+        { value: 'columnGreaterThan', label: '> Column' },
+        { value: 'columnLessThan', label: '< Column' },
+        { value: 'columnGreaterThanOrEqual', label: '≥ Column' },
+        { value: 'columnLessThanOrEqual', label: '≤ Column' }
       ]
     } else {
       return [
@@ -80,7 +94,10 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
         { value: 'contains', label: 'Contains' },
         { value: 'notContains', label: 'Does Not Contain' },
         { value: 'startsWith', label: 'Starts With' },
-        { value: 'endsWith', label: 'Ends With' }
+        { value: 'endsWith', label: 'Ends With' },
+        ...commonCompareOps,
+        { value: 'columnContains', label: 'Contains Column' },
+        { value: 'columnIn', label: 'Exists in Column' }
       ]
     }
   }
@@ -139,6 +156,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                   const column = columns.find(c => c.name === filter.column)
                   const operators = getOperatorsForColumn(filter.column)
                   const isBetween = filter.operator === 'between'
+                  const isColumnCompare = filter.operator.startsWith('column')
 
                   return (
                     <div key={filter.id} className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/30">
@@ -146,26 +164,45 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <Label htmlFor={`column-${filter.id}`} className="text-xs mb-1">Column</Label>
-                            <Select
-                              value={filter.column}
-                              onValueChange={(value) => updateFilter(filter.id, { 
-                                column: value,
-                                operator: 'equals',
-                                value: '',
-                                valueTo: undefined
-                              })}
-                            >
-                              <SelectTrigger id={`column-${filter.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {columns.map((col) => (
-                                  <SelectItem key={col.name} value={col.name}>
-                                    {col.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <TooltipProvider>
+                              <Tooltip delayDuration={300}>
+                                <TooltipTrigger asChild>
+                                  <Select
+                                    value={filter.column}
+                                    onValueChange={(value) => updateFilter(filter.id, { 
+                                      column: value,
+                                      operator: 'equals',
+                                      value: '',
+                                      valueTo: undefined,
+                                      compareToColumn: undefined
+                                    })}
+                                  >
+                                    <SelectTrigger id={`column-${filter.id}`} className="max-w-full">
+                                      <SelectValue className="truncate" />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-w-xs">
+                                      {columns.map((col) => (
+                                        <SelectItem key={col.name} value={col.name}>
+                                          <TooltipProvider>
+                                            <Tooltip delayDuration={500}>
+                                              <TooltipTrigger asChild>
+                                                <span className="block max-w-[250px] truncate">{col.name}</span>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="right">
+                                                <p className="max-w-xs break-words">{col.name}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="max-w-xs break-words">{filter.column}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
 
                           <div>
@@ -174,7 +211,8 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                               value={filter.operator}
                               onValueChange={(value) => updateFilter(filter.id, { 
                                 operator: value,
-                                valueTo: value === 'between' ? filter.valueTo : undefined
+                                valueTo: value === 'between' ? filter.valueTo : undefined,
+                                compareToColumn: value.startsWith('column') ? (filter.compareToColumn || columns[0]?.name) : undefined
                               })}
                             >
                               <SelectTrigger id={`operator-${filter.id}`}>
@@ -191,10 +229,45 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                           </div>
 
                           <div>
-                            <Label htmlFor={`value-${filter.id}`} className="text-xs mb-1">
-                              {isBetween ? 'From' : 'Value'}
+                            <Label htmlFor={`value-${filter.id}`} className="text-xs mb-1 flex items-center gap-1">
+                              {isBetween ? 'From' : isColumnCompare ? 'Compare Column' : 'Value'}
+                              {isColumnCompare && <Columns size={14} weight="bold" className="text-accent" />}
                             </Label>
-                            {column?.type === 'date' ? (
+                            {isColumnCompare ? (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={300}>
+                                  <TooltipTrigger asChild>
+                                    <Select
+                                      value={filter.compareToColumn || columns[0]?.name}
+                                      onValueChange={(value) => updateFilter(filter.id, { compareToColumn: value })}
+                                    >
+                                      <SelectTrigger id={`value-${filter.id}`} className="max-w-full">
+                                        <SelectValue className="truncate" />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-w-xs">
+                                        {columns.filter(c => c.name !== filter.column).map((col) => (
+                                          <SelectItem key={col.name} value={col.name}>
+                                            <TooltipProvider>
+                                              <Tooltip delayDuration={500}>
+                                                <TooltipTrigger asChild>
+                                                  <span className="block max-w-[250px] truncate">{col.name}</span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="right">
+                                                  <p className="max-w-xs break-words">{col.name}</p>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p className="max-w-xs break-words">{filter.compareToColumn || columns[0]?.name}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : column?.type === 'date' ? (
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
@@ -240,7 +313,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                         </Button>
                       </div>
 
-                      {isBetween && (
+                      {isBetween && !isColumnCompare && (
                         <div className="pl-0 sm:pl-[calc(66.666%+0.5rem)]">
                           <Label htmlFor={`valueTo-${filter.id}`} className="text-xs mb-1">To</Label>
                           {column?.type === 'date' ? (
