@@ -89,6 +89,13 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **Progression**: JOIN executes → Diagram updates with new nodes and edges → Original tables displayed as white rectangles, JOIN results as purple rectangles → Lines show JOIN connections → User can drag nodes to rearrange layout → Hover for details → Zoom and pan for navigation
 - **Success criteria**: Diagram accurately represents table relationships, nodes are draggable for custom layouts, zoom/pan controls work smoothly, color coding distinguishes source tables from JOIN results, connection lines clearly show which tables participate in each JOIN
 
+### Aggregated Bar Charts
+- **Functionality**: Generates visual bar charts showing group comparisons from aggregated data, with multi-value support and interactive column selection
+- **Purpose**: Provides immediate visual understanding of aggregation results, comparing values across groups with color-coded bars
+- **Trigger**: Automatic rendering after Group By operation executes, displayed in Group By tab below the aggregation panel
+- **Progression**: User executes Group By → Aggregated data generates → Bar chart renders with category on X-axis → User selects category column for grouping → User toggles one or more value columns for Y-axis → Chart updates with multiple colored bars → Hover shows detailed tooltips → Chart displays first 50 groups if dataset is large
+- **Success criteria**: Charts render correctly with proper scaling, support multiple Y-axis values simultaneously, display formatted numbers (K/M notation), tooltips show exact values, X-axis labels rotate for readability, color-coded bars use distinct chart colors, empty/invalid states show helpful messages
+
 ## Edge Case Handling
 
 - **Invalid File Format**: Display clear error message "Please upload a valid Excel or CSV file" with supported format list
@@ -103,6 +110,8 @@ This is a focused data analysis tool with file upload, data display, visualizati
 - **JOIN with No Matches**: Display helpful message when JOIN returns no rows, suggesting different join columns or JOIN type
 - **Fewer than 2 Query Results**: Show placeholder in JOIN panel explaining at least 2 query results are needed
 - **No JOIN Relationships**: Show placeholder in relationship diagram when no JOINs have been performed yet
+- **No Aggregated Data for Charts**: Display placeholder in bar chart when no Group By results exist yet
+- **Non-Compatible Chart Data**: Show helpful message when aggregated data lacks necessary column types (needs at least 1 category and 1 numeric column)
 
 ## Design Direction
 
@@ -169,6 +178,7 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Custom JOIN preview panel showing operation details before execution
   - Syntax-highlighted SQL query textarea with monospace font
   - Interactive force-directed graph for relationship diagram with draggable nodes and zoom/pan controls
+  - Multi-value bar chart with toggleable columns and formatted axis labels
 
 - **States**: 
   - Buttons: Default (solid primary), hover (slightly lighter with shadow lift), active (pressed down with darker shade), disabled (muted with reduced opacity)
@@ -195,6 +205,8 @@ Animations should reinforce data interactions and state changes, creating a sens
   - Play (Phosphor) - Execute query/JOIN button
   - ArrowsLeftRight (Phosphor) - JOIN operations icon
   - GitFork (Phosphor) - Relationship diagram icon
+  - ChartBar (Phosphor) - Bar chart visualization icon, group comparison charts
+  - FunnelSimple (Phosphor) - Group By aggregation icon
 
 - **Spacing**: 
   - Container padding: `p-8` (2rem) for main content areas
@@ -217,3 +229,5 @@ Animations should reinforce data interactions and state changes, creating a sens
   - SQL query editor and JOIN panel stack vertically with full-width controls
   - JOIN table selection cards stack vertically on mobile instead of side-by-side
   - Relationship diagram remains interactive on mobile with touch-based zoom/pan and node dragging
+  - Bar charts scale to full width with rotated X-axis labels, legend stacks vertically
+  - Multi-value toggles in bar chart wrap to multiple rows on narrow screens

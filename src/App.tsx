@@ -17,6 +17,7 @@ import { QueryResults } from '@/components/QueryResults'
 import { JoinPanel } from '@/components/JoinPanel'
 import { RelationshipDiagram } from '@/components/RelationshipDiagram'
 import { GroupByPanel } from '@/components/GroupByPanel'
+import { AggregatedBarChart } from '@/components/AggregatedBarChart'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, JoinRelationship } from '@/lib/types'
 
@@ -277,6 +278,13 @@ function App() {
                     columns={columns}
                     onGroupResult={handleQueryResult}
                   />
+                  
+                  {queryResults.length > 0 && (
+                    <AggregatedBarChart
+                      data={queryResults[queryResults.length - 1].data}
+                      columns={queryResults[queryResults.length - 1].columns}
+                    />
+                  )}
                   
                   <QueryResults
                     results={queryResults}
