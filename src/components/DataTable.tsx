@@ -156,50 +156,56 @@ export function DataTable({ data, columns }: DataTableProps) {
         </DropdownMenu>
       </div>
 
-      <ScrollArea className="h-[500px] rounded-lg border">
-        <div className="min-w-max">
-          <Table>
-            <TableHeader className="sticky top-0 bg-card z-10">
-              <TableRow>
-                {displayColumns.map((column) => (
-                  <TableHead 
-                    key={column.name}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors min-w-[120px]"
-                    onClick={() => handleSort(column.name)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{column.name}</span>
-                      <Badge variant={column.type === 'numeric' ? 'default' : column.type === 'date' ? 'outline' : 'secondary'} className="text-xs">
-                        {column.type === 'numeric' ? '123' : column.type === 'date' ? '📅' : 'ABC'}
-                      </Badge>
-                      {sortColumn === column.name && (
-                        sortDirection === 'asc' 
-                          ? <SortAscending size={16} weight="bold" />
-                          : <SortDescending size={16} weight="bold" />
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedData.map((row, rowIndex) => (
-                <TableRow key={rowIndex} className="hover:bg-muted/30">
-                  {displayColumns.map((column) => (
-                    <TableCell 
-                      key={`${rowIndex}-${column.name}`}
-                      className={column.type === 'numeric' ? 'font-mono tabular-nums' : ''}
+      <div className="rounded-lg border overflow-hidden">
+        <ScrollArea className="h-[500px]">
+          <div className="min-w-max">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+                <TableRow>
+                  {displayColumns.map((column, columnIndex) => (
+                    <TableHead 
+                      key={column.name}
+                      className={`cursor-pointer hover:bg-muted/50 transition-colors min-w-[120px] ${
+                        columnIndex === 0 ? 'bg-accent/30 border-r-2 border-accent' : ''
+                      }`}
+                      onClick={() => handleSort(column.name)}
                     >
-                      {row[column.name] !== null ? String(row[column.name]) : '—'}
-                    </TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{column.name}</span>
+                        <Badge variant={column.type === 'numeric' ? 'default' : column.type === 'date' ? 'outline' : 'secondary'} className="text-xs">
+                          {column.type === 'numeric' ? '123' : column.type === 'date' ? '📅' : 'ABC'}
+                        </Badge>
+                        {sortColumn === column.name && (
+                          sortDirection === 'asc' 
+                            ? <SortAscending size={16} weight="bold" />
+                            : <SortDescending size={16} weight="bold" />
+                        )}
+                      </div>
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+              </TableHeader>
+              <TableBody>
+                {sortedData.map((row, rowIndex) => (
+                  <TableRow key={rowIndex} className="hover:bg-muted/30">
+                    {displayColumns.map((column, columnIndex) => (
+                      <TableCell 
+                        key={`${rowIndex}-${column.name}`}
+                        className={`${column.type === 'numeric' ? 'font-mono tabular-nums' : ''} ${
+                          columnIndex === 0 ? 'bg-accent/5 border-r-2 border-accent/30' : ''
+                        }`}
+                      >
+                        {row[column.name] !== null ? String(row[column.name]) : '—'}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
     </div>
   )
 }

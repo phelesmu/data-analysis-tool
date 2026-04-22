@@ -18,6 +18,7 @@ import { JoinPanel } from '@/components/JoinPanel'
 import { RelationshipDiagram } from '@/components/RelationshipDiagram'
 import { GroupByPanel } from '@/components/GroupByPanel'
 import { AggregatedBarChart } from '@/components/AggregatedBarChart'
+import { DataSourceSelector, type DataSource } from '@/components/DataSourceSelector'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, JoinRelationship } from '@/lib/types'
 
@@ -41,6 +42,7 @@ function App() {
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
   const [queryResults, setQueryResults] = useState<QueryResult[]>([])
   const [joinHistory, setJoinHistory] = useState<JoinRelationship[]>([])
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>('main')
 
   const filteredData = useMemo(() => {
     let result = applyFilters(data, filters, columns)
@@ -52,13 +54,43 @@ function App() {
     return result
   }, [data, filters, columns, dateRangeColumn, dateRangeStart, dateRangeEnd])
 
+  const dataSources = useMemo<DataSource[]>(() => {
+    const sources: DataSource[] = []
+    
+    if (data.length > 0) {
+      sources.push({
+        id: 'main',
+        name: `Main Dataset (${fileName})`,
+        data: filteredData,
+        columns: columns
+      })
+    }
+    
+    queryResults.forEach((result) => {
+      sources.push({
+        id: result.id,
+        name: result.name,
+        data: result.data,
+        columns: result.columns
+      })
+    })
+    
+    return sources
+  }, [data, fileName, filteredData, columns, queryResults])
+
+  const selectedDataSource = useMemo(() => {
+    return dataSources.find(s => s.id === selectedDataSourceId) || dataSources[0]
+  }, [dataSources, selectedDataSourceId])
+
   const filteredStatistics = useMemo(() => {
-    return calculateStatistics(filteredData, columns)
-  }, [filteredData, columns])
+    if (!selectedDataSource) return []
+    return calculateStatistics(selectedDataSource.data, selectedDataSource.columns)
+  }, [selectedDataSource])
 
   const correlationMatrix = useMemo(() => {
-    return calculateCorrelationMatrix(filteredData, columns)
-  }, [filteredData, columns])
+    if (!selectedDataSource) return { columns: [], matrix: [] }
+    return calculateCorrelationMatrix(selectedDataSource.data, selectedDataSource.columns)
+  }, [selectedDataSource])
 
   const topCorrelations = useMemo(() => {
     return getTopCorrelations(correlationMatrix, 10)
@@ -268,23 +300,52 @@ function App() {
               </TabsContent>
 
               <TabsContent value="charts" className="mt-6">
-                <DataVisualization data={filteredData} columns={columns} />
+                <div className="space-y-4">
+                  {dataSources.length > 0 && (
+                    <DataSourceSelector
+                      currentSource={selectedDataSourceId}
+                      sources={dataSources}
+                      onSourceChange={setSelectedDataSourceId}
+                    />
+                  )}
+                  <DataVisualization 
+                    data={selectedDataSource?.data || filteredData} 
+                    columns={selectedDataSource?.columns || columns} 
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="stats" className="mt-6">
-                <StatisticsCards statistics={filteredStatistics} />
+                <div className="space-y-4">
+                  {dataSources.length > 0 && (
+                    <DataSourceSelector
+                      currentSource={selectedDataSourceId}
+                      sources={dataSources}
+                      onSourceChange={setSelectedDataSourceId}
+                    />
+                  )}
+                  <StatisticsCards statistics={filteredStatistics} />
+                </div>
               </TabsContent>
 
               <TabsContent value="correlation" className="mt-6">
                 <div className="space-y-6">
+                  {dataSources.length > 0 && (
+                    <DataSourceSelector
+                      currentSource={selectedDataSourceId}
+                      sources={dataSources}
+                      onSourceChange={setSelectedDataSourceId}
+                    />
+                  )}
+                  
                   <CorrelationAnalysis 
                     correlationMatrix={correlationMatrix}
                     topCorrelations={topCorrelations}
                   />
                   
                   <ScatterPlot 
-                    data={filteredData}
-                    columns={columns}
+                    data={selectedDataSource?.data || filteredData}
+                    columns={selectedDataSource?.columns || columns}
                   />
                 </div>
               </TabsContent>
