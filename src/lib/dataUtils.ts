@@ -52,14 +52,41 @@ function parseCSV(text: string): DataRow[] {
   const lines = text.split('\n').filter(line => line.trim())
   if (lines.length === 0) return []
 
-  const headers = lines[0].split(',').map(h => h.trim())
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    
+    result.push(current.trim())
+    return result
+  }
+
+  const headers = parseCSVLine(lines[0])
   const data: DataRow[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',')
+    const values = parseCSVLine(lines[i])
     const row: DataRow = {}
     headers.forEach((header, index) => {
-      const value = values[index]?.trim()
+      const value = values[index]?.trim() || ''
       row[header] = parseValue(value)
     })
     data.push(row)
@@ -69,9 +96,9 @@ function parseCSV(text: string): DataRow[] {
 }
 
 function parseExcel(data: ArrayBuffer): DataRow[] {
-  const workbook = XLSX.read(data, { type: 'array' })
+  const workbook = XLSX.read(data, { type: 'array', cellDates: true })
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null })
+  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null, raw: false })
   
   return jsonData.map(row => {
     const dataRow: DataRow = {}
@@ -85,7 +112,27 @@ function parseExcel(data: ArrayBuffer): DataRow[] {
 function parseValue(value: unknown): string | number | null {
   if (value === null || value === undefined || value === '') return null
   
+  if (value instanceof Date) {
+    const hasTime = value.getHours() !== 0 || value.getMinutes() !== 0 || value.getSeconds() !== 0
+    if (hasTime) {
+      return value.toISOString().replace('T', ' ').split('.')[0]
+    }
+    return value.toISOString().split('T')[0]
+  }
+  
   const strValue = String(value).trim()
+  
+  if (isDateString(strValue)) {
+    const date = new Date(strValue)
+    if (!isNaN(date.getTime())) {
+      const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0
+      if (hasTime) {
+        return date.toISOString().replace('T', ' ').split('.')[0]
+      }
+      return date.toISOString().split('T')[0]
+    }
+  }
+  
   const numValue = Number(strValue)
   
   if (!isNaN(numValue) && strValue !== '') {
@@ -108,6 +155,8 @@ function isDateString(value: unknown): boolean {
     /^\d{4}\/\d{1,2}\/\d{1,2}$/,
     /^\d{1,2}\.\d{1,2}\.\d{4}$/,
     /^\d{4}\.\d{1,2}\.\d{1,2}$/,
+    /^\d{4}-\d{1,2}-\d{1,2}[T\s]\d{1,2}:\d{1,2}(:\d{1,2})?/,
+    /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?/,
   ]
   
   if (!datePatterns.some(pattern => pattern.test(str))) {
@@ -115,7 +164,7 @@ function isDateString(value: unknown): boolean {
   }
   
   const date = new Date(str)
-  return !isNaN(date.getTime())
+  return !isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100
 }
 
 function detectColumns(data: DataRow[]): ColumnInfo[] {

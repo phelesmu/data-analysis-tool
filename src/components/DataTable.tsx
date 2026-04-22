@@ -60,45 +60,47 @@ export function DataTable({ data, columns }: DataTableProps) {
       </div>
 
       <ScrollArea className="h-[500px] rounded-lg border">
-        <Table>
-          <TableHeader className="sticky top-0 bg-card z-10">
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead 
-                  key={column.name}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleSort(column.name)}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{column.name}</span>
-                    <Badge variant={column.type === 'numeric' ? 'default' : 'outline'} className="text-xs">
-                      {column.type === 'numeric' ? '123' : 'ABC'}
-                    </Badge>
-                    {sortColumn === column.name && (
-                      sortDirection === 'asc' 
-                        ? <SortAscending size={16} weight="bold" />
-                        : <SortDescending size={16} weight="bold" />
-                    )}
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.map((row, rowIndex) => (
-              <TableRow key={rowIndex} className="hover:bg-muted/30">
+        <div className="min-w-max">
+          <Table>
+            <TableHeader className="sticky top-0 bg-card z-10">
+              <TableRow>
                 {columns.map((column) => (
-                  <TableCell 
-                    key={`${rowIndex}-${column.name}`}
-                    className={column.type === 'numeric' ? 'font-mono tabular-nums' : ''}
+                  <TableHead 
+                    key={column.name}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors min-w-[120px]"
+                    onClick={() => handleSort(column.name)}
                   >
-                    {row[column.name] !== null ? String(row[column.name]) : '—'}
-                  </TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{column.name}</span>
+                      <Badge variant={column.type === 'numeric' ? 'default' : column.type === 'date' ? 'outline' : 'secondary'} className="text-xs">
+                        {column.type === 'numeric' ? '123' : column.type === 'date' ? '📅' : 'ABC'}
+                      </Badge>
+                      {sortColumn === column.name && (
+                        sortDirection === 'asc' 
+                          ? <SortAscending size={16} weight="bold" />
+                          : <SortDescending size={16} weight="bold" />
+                      )}
+                    </div>
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedData.map((row, rowIndex) => (
+                <TableRow key={rowIndex} className="hover:bg-muted/30">
+                  {columns.map((column) => (
+                    <TableCell 
+                      key={`${rowIndex}-${column.name}`}
+                      className={column.type === 'numeric' ? 'font-mono tabular-nums' : ''}
+                    >
+                      {row[column.name] !== null ? String(row[column.name]) : '—'}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </ScrollArea>
     </div>
   )
