@@ -41,7 +41,7 @@ interface TooltipData {
   visible: boolean
   x: number
   y: number
-  node: Node | null
+  nodeId: string | null
 }
 
 interface Link {
@@ -59,7 +59,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
     visible: false,
     x: 0,
     y: 0,
-    node: null
+    nodeId: null
   })
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
   const [hoveredColumnName, setHoveredColumnName] = useState<string | null>(null)
@@ -266,7 +266,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
             visible: true,
             x: event.pageX - containerRect.left,
             y: event.pageY - containerRect.top,
-            node: d
+            nodeId: d.id
           })
         }
         d3.select(this)
@@ -286,7 +286,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
         }
       })
       .on('mouseleave', function() {
-        setTooltip({ visible: false, x: 0, y: 0, node: null })
+        setTooltip({ visible: false, x: 0, y: 0, nodeId: null })
         d3.select(this)
           .transition()
           .duration(200)
@@ -432,100 +432,105 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
         <div ref={containerRef} className="w-full rounded-lg bg-muted/30 border-2 border-border overflow-hidden relative">
           <svg ref={svgRef} className="w-full" />
           
-          {tooltip.visible && tooltip.node && (
-            <div
-              className="absolute z-50"
-              style={{
-                left: `${tooltip.x + 20}px`,
-                top: `${tooltip.y + 20}px`,
-                maxWidth: '400px',
-                pointerEvents: 'auto'
-              }}
-            >
-              <div className="bg-card border-2 border-border rounded-lg shadow-xl p-4 font-mono text-xs">
-                <div className="space-y-3">
-                  <div className="pb-2 border-b border-border">
-                    <div className="font-bold text-sm text-foreground mb-1">
-                      {tooltip.node.name}
+          {tooltip.visible && tooltip.nodeId && (() => {
+            const tooltipNode = nodes.find(n => n.id === tooltip.nodeId)
+            if (!tooltipNode) return null
+            
+            return (
+              <div
+                className="absolute z-50"
+                style={{
+                  left: `${tooltip.x + 20}px`,
+                  top: `${tooltip.y + 20}px`,
+                  maxWidth: '400px',
+                  pointerEvents: 'auto'
+                }}
+              >
+                <div className="bg-card border-2 border-border rounded-lg shadow-xl p-4 font-mono text-xs">
+                  <div className="space-y-3">
+                    <div className="pb-2 border-b border-border">
+                      <div className="font-bold text-sm text-foreground mb-1">
+                        {tooltipNode.name}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {tooltipNode.rowCount} 行 × {tooltipNode.columnCount} 列
+                      </div>
                     </div>
-                    <div className="text-muted-foreground">
-                      {tooltip.node.rowCount} 行 × {tooltip.node.columnCount} 列
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-muted-foreground mb-2 font-semibold">
-                      列详情 {highlightedColumn && <span className="text-accent">(点击列名高亮关系)</span>}:
-                    </div>
-                    <div className="space-y-1 max-h-64 overflow-y-auto">
-                      {tooltip.node.columns.map((col, idx) => {
-                        const relatedLinks = getRelatedLinks(col.name, tooltip.node!.id)
-                        const hasRelationships = relatedLinks.length > 0
-                        const isHighlighted = highlightedColumn === col.name
-                        const truncateLength = 30
-                        const isTruncated = col.name.length > truncateLength
-                        const displayName = isTruncated ? col.name.substring(0, truncateLength) + '...' : col.name
-                        
-                        return (
-                          <TooltipProvider key={idx}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div 
-                                  className={`flex items-start justify-between gap-4 py-1 px-2 rounded transition-all ${
-                                    hasRelationships 
-                                      ? 'bg-accent/10 hover:bg-accent/20 cursor-pointer border-2 border-accent/30' 
-                                      : 'bg-muted/50'
-                                  } ${
-                                    isHighlighted ? 'ring-2 ring-accent shadow-lg bg-accent/30' : ''
-                                  }`}
-                                  onClick={() => {
-                                    if (hasRelationships) {
-                                      setHighlightedColumn(isHighlighted ? null : col.name)
-                                    }
-                                  }}
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate ${
-                                      hasRelationships ? 'text-accent-foreground' : 'text-foreground'
-                                    }`}>
-                                      {displayName}
+                    
+                    <div>
+                      <div className="text-muted-foreground mb-2 font-semibold">
+                        列详情 {highlightedColumn && <span className="text-accent">(点击列名高亮关系)</span>}:
+                      </div>
+                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                        {tooltipNode.columns.map((col: ColumnInfo, idx: number) => {
+                          const relatedLinks = getRelatedLinks(col.name, tooltipNode.id)
+                          const hasRelationships = relatedLinks.length > 0
+                          const isHighlighted = highlightedColumn === col.name
+                          const truncateLength = 30
+                          const isTruncated = col.name.length > truncateLength
+                          const displayName = isTruncated ? col.name.substring(0, truncateLength) + '...' : col.name
+                          
+                          return (
+                            <TooltipProvider key={idx}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div 
+                                    className={`flex items-start justify-between gap-4 py-1 px-2 rounded transition-all ${
+                                      hasRelationships 
+                                        ? 'bg-accent/10 hover:bg-accent/20 cursor-pointer border-2 border-accent/30' 
+                                        : 'bg-muted/50'
+                                    } ${
+                                      isHighlighted ? 'ring-2 ring-accent shadow-lg bg-accent/30' : ''
+                                    }`}
+                                    onClick={() => {
+                                      if (hasRelationships) {
+                                        setHighlightedColumn(isHighlighted ? null : col.name)
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className={`font-medium truncate ${
+                                        hasRelationships ? 'text-accent-foreground' : 'text-foreground'
+                                      }`}>
+                                        {displayName}
+                                      </div>
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                        col.type === 'numeric' 
+                                          ? 'bg-accent text-accent-foreground' 
+                                          : col.type === 'date'
+                                          ? 'bg-primary text-primary-foreground'
+                                          : 'bg-secondary text-secondary-foreground'
+                                      }`}>
+                                        {getColumnTypeLabel(col.type)}
+                                      </span>
                                     </div>
                                   </div>
-                                  <div className="flex-shrink-0">
-                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                      col.type === 'numeric' 
-                                        ? 'bg-accent text-accent-foreground' 
-                                        : col.type === 'date'
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-secondary text-secondary-foreground'
-                                    }`}>
-                                      {getColumnTypeLabel(col.type)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              {(isTruncated || hasRelationships) && (
-                                <TooltipContent side="left" className="max-w-xs">
-                                  <div className="space-y-1">
-                                    <div className="font-semibold">{col.name}</div>
-                                    {hasRelationships && (
-                                      <div className="text-xs text-muted-foreground">
-                                        点击以{isHighlighted ? '取消' : ''}高亮 {relatedLinks.length} 个关系
-                                      </div>
-                                    )}
-                                  </div>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        )
-                      })}
+                                </TooltipTrigger>
+                                {(isTruncated || hasRelationships) && (
+                                  <TooltipContent side="left" className="max-w-xs">
+                                    <div className="space-y-1">
+                                      <div className="font-semibold">{col.name}</div>
+                                      {hasRelationships && (
+                                        <div className="text-xs text-muted-foreground">
+                                          点击以{isHighlighted ? '取消' : ''}高亮 {relatedLinks.length} 个关系
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
