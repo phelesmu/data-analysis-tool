@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair } from './types'
+import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, GroupByConfig, AggregationFunction } from './types'
 
 export function parseFile(file: File): Promise<{ data: DataRow[]; columns: ColumnInfo[] }> {
   return new Promise((resolve, reject) => {
@@ -506,4 +506,149 @@ export function exportToCSV(data: DataRow[], filename: string = 'data.csv'): voi
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+function calculateAggregation(values: (string | number | null)[], func: AggregationFunction, columnType: 'numeric' | 'text' | 'date'): number | null {
+  const validValues = values.filter(v => v !== null)
+  
+  if (validValues.length === 0) return null
+
+  switch (func) {
+    case 'count':
+      return validValues.length
+
+    case 'countDistinct': {
+      const uniqueValues = new Set(validValues)
+      return uniqueValues.size
+    }
+
+    case 'sum': {
+      if (columnType !== 'numeric') return null
+      const numValues = validValues.filter((v): v is number => typeof v === 'number')
+      if (numValues.length === 0) return null
+      return Number(numValues.reduce((acc, val) => acc + val, 0).toFixed(2))
+    }
+
+    case 'avg': {
+      if (columnType !== 'numeric') return null
+      const numValues = validValues.filter((v): v is number => typeof v === 'number')
+      if (numValues.length === 0) return null
+      const sum = numValues.reduce((acc, val) => acc + val, 0)
+      return Number((sum / numValues.length).toFixed(2))
+    }
+
+    case 'min': {
+      if (columnType === 'numeric') {
+        const numValues = validValues.filter((v): v is number => typeof v === 'number')
+        if (numValues.length === 0) return null
+        return Math.min(...numValues)
+      } else if (columnType === 'date') {
+        const dateValues = validValues.map(v => new Date(String(v)).getTime()).filter(t => !isNaN(t))
+        if (dateValues.length === 0) return null
+        return Math.min(...dateValues)
+      }
+      return null
+    }
+
+    case 'max': {
+      if (columnType === 'numeric') {
+        const numValues = validValues.filter((v): v is number => typeof v === 'number')
+        if (numValues.length === 0) return null
+        return Math.max(...numValues)
+      } else if (columnType === 'date') {
+        const dateValues = validValues.map(v => new Date(String(v)).getTime()).filter(t => !isNaN(t))
+        if (dateValues.length === 0) return null
+        return Math.max(...dateValues)
+      }
+      return null
+    }
+
+    case 'median': {
+      if (columnType !== 'numeric') return null
+      const numValues = validValues.filter((v): v is number => typeof v === 'number')
+      if (numValues.length === 0) return null
+      const sorted = [...numValues].sort((a, b) => a - b)
+      const mid = Math.floor(sorted.length / 2)
+      return sorted.length % 2 === 0
+        ? Number(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2))
+        : Number(sorted[mid].toFixed(2))
+    }
+
+    case 'stddev': {
+      if (columnType !== 'numeric') return null
+      const numValues = validValues.filter((v): v is number => typeof v === 'number')
+      if (numValues.length === 0) return null
+      const mean = numValues.reduce((acc, val) => acc + val, 0) / numValues.length
+      const squaredDiffs = numValues.map(val => Math.pow(val - mean, 2))
+      const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / numValues.length
+      return Number(Math.sqrt(variance).toFixed(2))
+    }
+
+    case 'variance': {
+      if (columnType !== 'numeric') return null
+      const numValues = validValues.filter((v): v is number => typeof v === 'number')
+      if (numValues.length === 0) return null
+      const mean = numValues.reduce((acc, val) => acc + val, 0) / numValues.length
+      const squaredDiffs = numValues.map(val => Math.pow(val - mean, 2))
+      return Number((squaredDiffs.reduce((acc, val) => acc + val, 0) / numValues.length).toFixed(2))
+    }
+
+    default:
+      return null
+  }
+}
+
+export function performGroupByAggregation(
+  data: DataRow[],
+  groupByColumns: string[],
+  aggregations: { column: string; function: AggregationFunction; alias?: string }[],
+  columns: ColumnInfo[]
+): DataRow[] {
+  if (groupByColumns.length === 0 && aggregations.length === 0) return data
+
+  const groups = new Map<string, DataRow[]>()
+
+  if (groupByColumns.length === 0) {
+    groups.set('__all__', data)
+  } else {
+    data.forEach(row => {
+      const groupKey = groupByColumns
+        .map(col => {
+          const val = row[col]
+          return val === null ? 'NULL' : String(val)
+        })
+        .join('|||')
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, [])
+      }
+      groups.get(groupKey)!.push(row)
+    })
+  }
+
+  const results: DataRow[] = []
+
+  groups.forEach((groupRows, groupKey) => {
+    const resultRow: DataRow = {}
+
+    if (groupByColumns.length > 0) {
+      groupByColumns.forEach((col, index) => {
+        const keyParts = groupKey.split('|||')
+        resultRow[col] = keyParts[index] === 'NULL' ? null : keyParts[index]
+      })
+    }
+
+    aggregations.forEach(agg => {
+      const column = columns.find(c => c.name === agg.column)
+      const columnType = column?.type || 'text'
+      const values = groupRows.map(row => row[agg.column])
+      const result = calculateAggregation(values, agg.function, columnType)
+      const outputKey = agg.alias || `${agg.function}(${agg.column})`
+      resultRow[outputKey] = result
+    })
+
+    results.push(resultRow)
+  })
+
+  return results
 }

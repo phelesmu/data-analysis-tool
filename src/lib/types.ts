@@ -48,3 +48,24 @@ export interface JoinRelationship {
   joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL'
   resultName: string
 }
+
+export type AggregationFunction = 'count' | 'sum' | 'avg' | 'min' | 'max' | 'median' | 'stddev' | 'variance' | 'countDistinct'
+
+export interface AggregationConfig {
+  id: string
+  column: string
+  function: AggregationFunction
+  alias?: string
+}
+
+export interface GroupByConfig {
+  groupByColumns: string[]
+  aggregations: AggregationConfig[]
+}
+
+export interface GroupedResult {
+  groupKey: string
+  groupValues: Record<string, string | number | null>
+  aggregatedValues: Record<string, number | null>
+  count: number
+}

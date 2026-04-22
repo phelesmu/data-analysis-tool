@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
-import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code } from '@phosphor-icons/react'
+import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/FileUpload'
@@ -16,6 +16,7 @@ import { SqlQueryPanel } from '@/components/SqlQueryPanel'
 import { QueryResults } from '@/components/QueryResults'
 import { JoinPanel } from '@/components/JoinPanel'
 import { RelationshipDiagram } from '@/components/RelationshipDiagram'
+import { GroupByPanel } from '@/components/GroupByPanel'
 import { parseFile, calculateStatistics, applyFilters, applyDateRangeFilter, calculateCorrelationMatrix, getTopCorrelations, exportToCSV } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, JoinRelationship } from '@/lib/types'
 
@@ -139,20 +140,20 @@ function App() {
       setJoinHistory(prev => [...prev, joinRelationship])
     }
     
-    toast.success('查询执行成功!', {
-      description: `生成了 ${resultData.length} 行 × ${resultColumns.length} 列的结果`
+    toast.success('Query executed successfully!', {
+      description: `Generated ${resultData.length} rows × ${resultColumns.length} columns`
     })
   }, [])
 
   const handleRemoveResult = useCallback((id: string) => {
     setQueryResults(prev => prev.filter(r => r.id !== id))
-    toast.info('已删除查询结果')
+    toast.info('Query result removed')
   }, [])
 
   const handleExportResult = useCallback((result: QueryResult) => {
     exportToCSV(result.data, `${result.name.replace(/[^\w\s]/gi, '_')}.csv`)
-    toast.success('导出成功!', {
-      description: `已导出 ${result.data.length} 行数据`
+    toast.success('Export successful!', {
+      description: `Exported ${result.data.length} rows`
     })
   }, [])
 
@@ -216,7 +217,7 @@ function App() {
             <TimelineChart data={filteredData} columns={columns} />
 
             <Tabs defaultValue="table" className="w-full">
-              <TabsList className="grid w-full max-w-2xl grid-cols-5">
+              <TabsList className="grid w-full max-w-2xl grid-cols-6">
                 <TabsTrigger value="table" className="gap-2">
                   <Table size={18} weight="bold" />
                   <span className="hidden sm:inline">Table</span>
@@ -232,6 +233,10 @@ function App() {
                 <TabsTrigger value="correlation" className="gap-2">
                   <ArrowsInLineVertical size={18} weight="bold" />
                   <span className="hidden sm:inline">Correlation</span>
+                </TabsTrigger>
+                <TabsTrigger value="groupby" className="gap-2">
+                  <FunnelSimple size={18} weight="bold" />
+                  <span className="hidden sm:inline">Group By</span>
                 </TabsTrigger>
                 <TabsTrigger value="sql" className="gap-2">
                   <Code size={18} weight="bold" />
@@ -261,6 +266,22 @@ function App() {
                   <ScatterPlot 
                     data={filteredData}
                     columns={columns}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="groupby" className="mt-6">
+                <div className="space-y-6">
+                  <GroupByPanel
+                    data={filteredData}
+                    columns={columns}
+                    onGroupResult={handleQueryResult}
+                  />
+                  
+                  <QueryResults
+                    results={queryResults}
+                    onRemoveResult={handleRemoveResult}
+                    onExportResult={handleExportResult}
                   />
                 </div>
               </TabsContent>
