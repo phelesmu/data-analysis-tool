@@ -25,7 +25,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
 
   useEffect(() => {
     onFilterChange(filters)
-  }, [filters])
+  }, [filters, onFilterChange])
 
   const addFilter = () => {
     const newFilter: FilterConfig = {
