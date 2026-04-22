@@ -63,6 +63,12 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
     y: 0,
     nodeId: null
   })
+  const tooltipRef = useRef<TooltipData>({
+    visible: false,
+    x: 0,
+    y: 0,
+    nodeId: null
+  })
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
   const [hoveredColumnName, setHoveredColumnName] = useState<string | null>(null)
   const [collapsedNodesArray, setCollapsedNodesArray] = useKV<string[]>('diagram-collapsed-nodes', [])
@@ -279,12 +285,14 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       .on('mouseenter', function(event: any, d: any) {
         const containerRect = containerRef.current?.getBoundingClientRect()
         if (containerRect) {
-          setTooltip({
+          const newTooltip = {
             visible: true,
             x: event.pageX - containerRect.left,
             y: event.pageY - containerRect.top,
             nodeId: d.id
-          })
+          }
+          tooltipRef.current = newTooltip
+          setTooltip(newTooltip)
         }
         d3.select(this)
           .transition()
@@ -294,16 +302,20 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       })
       .on('mousemove', function(event: any) {
         const containerRect = containerRef.current?.getBoundingClientRect()
-        if (containerRect) {
-          setTooltip(prev => ({
-            ...prev,
+        if (containerRect && tooltipRef.current.visible) {
+          const newTooltip = {
+            ...tooltipRef.current,
             x: event.pageX - containerRect.left,
             y: event.pageY - containerRect.top
-          }))
+          }
+          tooltipRef.current = newTooltip
+          setTooltip(newTooltip)
         }
       })
       .on('mouseleave', function() {
-        setTooltip({ visible: false, x: 0, y: 0, nodeId: null })
+        const newTooltip = { visible: false, x: 0, y: 0, nodeId: null }
+        tooltipRef.current = newTooltip
+        setTooltip(newTooltip)
         d3.select(this)
           .transition()
           .duration(200)
