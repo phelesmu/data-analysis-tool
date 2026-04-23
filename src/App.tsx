@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Table, ChartBar, Function, UploadSimple, ArrowsInLineVertical, Code, FunnelSimple, Clock, Plus, X, DownloadSimple, Globe } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -53,16 +53,6 @@ function AppContent() {
   const extraFileInputRef = useRef<HTMLInputElement | null>(null)
   const { t, language, setLanguage } = useLanguage()
 
-  const filteredData = useMemo(() => {
-    let result = applyFilters(data, filters, columns)
-    
-    if (dateRangeColumn && dateRangeStart && dateRangeEnd) {
-      result = applyDateRangeFilter(result, dateRangeColumn, dateRangeStart, dateRangeEnd)
-    }
-    
-    return result
-  }, [data, filters, columns, dateRangeColumn, dateRangeStart, dateRangeEnd])
-
   const projectRowsToColumns = useCallback((rows: DataRow[], selectedColumns: string[]): DataRow[] => {
     return rows.map((row) => {
       const nextRow: DataRow = {}
@@ -73,20 +63,13 @@ function AppContent() {
     })
   }, [])
 
-  const baseDataSources = useMemo<DataSource[]>(() => {
+  const rawBaseDataSources = useMemo<DataSource[]>(() => {
     const sources: DataSource[] = []
 
     if (data.length > 0) {
       sources.push({
         id: 'main',
-        name: `Main: ${fileName} (filtered)`,
-        data: filteredData,
-        columns: columns,
-        kind: 'base',
-      })
-      sources.push({
-        id: 'main-raw',
-        name: `Main: ${fileName} (raw)`,
+        name: `Main: ${fileName}`,
         data: data,
         columns: columns,
         kind: 'base',
@@ -108,7 +91,41 @@ function AppContent() {
     })
 
     return sources
-  }, [data, fileName, filteredData, columns, extraDatasets, queryResults])
+  }, [data, fileName, columns, extraDatasets, queryResults])
+
+  const activeBaseSource = useMemo(() => {
+    const baseSourceId = selectedDataSourceId.startsWith('projection-')
+      ? selectedDataSourceId.replace(/^projection-/, '')
+      : selectedDataSourceId
+
+    return rawBaseDataSources.find(source => source.id === baseSourceId) || rawBaseDataSources[0]
+  }, [selectedDataSourceId, rawBaseDataSources])
+
+  const filteredData = useMemo(() => {
+    if (!activeBaseSource) return []
+
+    let result = applyFilters(activeBaseSource.data, filters, activeBaseSource.columns)
+
+    if (dateRangeColumn && dateRangeStart && dateRangeEnd) {
+      result = applyDateRangeFilter(result, dateRangeColumn, dateRangeStart, dateRangeEnd)
+    }
+
+    return result
+  }, [activeBaseSource, filters, dateRangeColumn, dateRangeStart, dateRangeEnd])
+
+  const baseDataSources = useMemo<DataSource[]>(() => {
+    return rawBaseDataSources.map((source) => {
+      if (source.id !== activeBaseSource?.id) {
+        return source
+      }
+
+      return {
+        ...source,
+        name: `${source.name} (filtered)`,
+        data: filteredData,
+      }
+    })
+  }, [rawBaseDataSources, activeBaseSource, filteredData])
 
   const projectedDataSources = useMemo<DataSource[]>(() => {
     return baseDataSources.flatMap((source) => {
@@ -140,6 +157,30 @@ function AppContent() {
   const selectedDataSource = useMemo(() => {
     return dataSources.find(s => s.id === selectedDataSourceId) || dataSources[0]
   }, [dataSources, selectedDataSourceId])
+
+  useEffect(() => {
+    if (!activeBaseSource) return
+
+    const validColumns = new Set(activeBaseSource.columns.map(column => column.name))
+
+    setFilters((prev) => {
+      const next = prev.filter((filter) => {
+        if (!validColumns.has(filter.column)) return false
+        if (filter.operator.startsWith('column') && filter.compareToColumn && !validColumns.has(filter.compareToColumn)) {
+          return false
+        }
+        return true
+      })
+
+      return next.length === prev.length ? prev : next
+    })
+
+    if (dateRangeColumn && !validColumns.has(dateRangeColumn)) {
+      setDateRangeColumn('')
+      setDateRangeStart(null)
+      setDateRangeEnd(null)
+    }
+  }, [activeBaseSource, dateRangeColumn])
 
   const filteredStatistics = useMemo(() => {
     if (activeTab !== 'stats' || !selectedDataSource) return []
@@ -416,7 +457,7 @@ function AppContent() {
               <span className="font-medium text-foreground">{t('app.currentFile')}:</span>
               <span>{fileName}</span>
               <span className="text-xs">•</span>
-              <span>{t('app.rows', { count: data.length.toLocaleString() })}</span>
+              <span>{t('app.rows', { count: activeBaseSource?.data.length.toLocaleString() || '0' })}</span>
               {activeFiltersCount > 0 && (
                 <>
                   <span className="text-xs">•</span>
@@ -445,21 +486,29 @@ function AppContent() {
               )}
             </div>
 
+            {dataSources.length > 0 && (
+              <DataSourceSelector
+                currentSource={selectedDataSourceId}
+                sources={dataSources}
+                onSourceChange={setSelectedDataSourceId}
+              />
+            )}
+
             <div className="grid gap-6 lg:grid-cols-2">
               <DataFilters 
-                columns={columns} 
+                columns={activeBaseSource?.columns || []} 
                 onFilterChange={handleFilterChange}
                 activeFiltersCount={activeFiltersCount}
               />
 
               <DateRangeSlider
-                data={data}
-                columns={columns}
+                data={activeBaseSource?.data || []}
+                columns={activeBaseSource?.columns || []}
                 onDateRangeChange={handleDateRangeChange}
               />
             </div>
 
-            <TimelineChart data={filteredData} columns={columns} />
+            <TimelineChart data={filteredData} columns={activeBaseSource?.columns || []} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-3xl grid-cols-7">
@@ -573,8 +622,8 @@ function AppContent() {
               <TabsContent value="groupby" className="mt-6">
                 <div className="space-y-6">
                   <GroupByPanel
-                    data={filteredData}
-                    columns={columns}
+                    data={selectedDataSource?.data || filteredData}
+                    columns={selectedDataSource?.columns || activeBaseSource?.columns || []}
                     onGroupResult={handleQueryResult}
                   />
                   
@@ -596,8 +645,8 @@ function AppContent() {
               <TabsContent value="sql" className="mt-6">
                 <div className="space-y-6">
                   <SqlQueryPanel
-                    data={filteredData}
-                    columns={columns}
+                    data={selectedDataSource?.data || filteredData}
+                    columns={selectedDataSource?.columns || activeBaseSource?.columns || []}
                     onQueryResult={handleQueryResult}
                   />
                   
