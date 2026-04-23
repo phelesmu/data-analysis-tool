@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { ChartBar } from '@phosphor-icons/react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import type { ColumnInfo, DataRow } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface AggregatedBarChartProps {
   data: DataRow[]
@@ -23,6 +24,7 @@ const CHART_COLORS = [
 ]
 
 export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
+  const { t } = useLanguage()
   const categoryColumns = useMemo(() => {
     return columns.filter(col => col.type === 'text' || col.type === 'date')
   }, [columns])
@@ -46,7 +48,7 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
 
     return data.map(row => {
       const result: Record<string, string | number | null> = {
-        category: String(row[categoryColumn] ?? 'N/A')
+        category: String(row[categoryColumn] ?? t('common.notAvailable'))
       }
       
       valueColumns.forEach(col => {
@@ -106,16 +108,16 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
           <div className="flex items-center gap-2">
             <ChartBar size={24} weight="duotone" className="text-primary" />
             <div>
-              <CardTitle>Group Comparison Chart</CardTitle>
+              <CardTitle>{t('aggChart.title')}</CardTitle>
               <CardDescription>
-                Visual comparison of aggregated values across groups
+                {t('aggChart.description')}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            No aggregated data available. Execute a Group By operation first.
+            {t('aggChart.noData')}
           </div>
         </CardContent>
       </Card>
@@ -129,16 +131,16 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
           <div className="flex items-center gap-2">
             <ChartBar size={24} weight="duotone" className="text-primary" />
             <div>
-              <CardTitle>Group Comparison Chart</CardTitle>
+              <CardTitle>{t('aggChart.title')}</CardTitle>
               <CardDescription>
-                Visual comparison of aggregated values across groups
+                {t('aggChart.description')}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            Data needs at least one category column and one numeric column to display charts.
+            {t('aggChart.needColumns')}
           </div>
         </CardContent>
       </Card>
@@ -151,9 +153,9 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
         <div className="flex items-center gap-2">
           <ChartBar size={24} weight="duotone" className="text-primary" />
           <div>
-            <CardTitle>Group Comparison Chart</CardTitle>
+            <CardTitle>{t('aggChart.title')}</CardTitle>
             <CardDescription>
-              Visual comparison of aggregated values across groups
+              {t('aggChart.description')}
             </CardDescription>
           </div>
         </div>
@@ -161,7 +163,7 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Category (X-Axis)</Label>
+            <Label>{t('aggChart.categoryAxis')}</Label>
             <Select value={categoryColumn} onValueChange={setCategoryColumn}>
               <SelectTrigger>
                 <SelectValue />
@@ -177,7 +179,7 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Values (Y-Axis) - Click to toggle</Label>
+            <Label>{t('aggChart.valueAxis')}</Label>
             <div className="flex flex-wrap gap-2">
               {numericColumns.map(col => (
                 <button
@@ -235,13 +237,13 @@ export function AggregatedBarChart({ data, columns }: AggregatedBarChartProps) {
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
-            Select at least one value column to display the chart.
+            {t('aggChart.selectValue')}
           </div>
         )}
 
         {chartData.length === 50 && data.length > 50 && (
           <div className="text-xs text-muted-foreground text-center p-2 bg-muted/50 rounded-md">
-            Showing first 50 groups. Total groups: {data.length}
+            {t('aggChart.showingFirstGroups', { count: data.length })}
           </div>
         )}
       </CardContent>

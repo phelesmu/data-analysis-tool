@@ -8,6 +8,7 @@ import { DataVisualization } from '@/components/DataVisualization'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { calculateStatistics } from '@/lib/dataUtils'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface QueryResult {
   id: string
@@ -24,6 +25,8 @@ interface QueryResultsProps {
 }
 
 export function QueryResults({ results, onRemoveResult, onExportResult }: QueryResultsProps) {
+  const { language, t } = useLanguage()
+
   if (results.length === 0) {
     return null
   }
@@ -31,10 +34,10 @@ export function QueryResults({ results, onRemoveResult, onExportResult }: QueryR
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">查询结果 ({results.length})</h3>
+        <h3 className="text-lg font-semibold">{t('queryResults.title', { count: results.length })}</h3>
         {results.length > 0 && (
           <Badge variant="secondary">
-            共 {results.reduce((sum, r) => sum + r.data.length, 0)} 条记录
+            {t('queryResults.totalRecords', { count: results.reduce((sum, r) => sum + r.data.length, 0) })}
           </Badge>
         )}
       </div>
@@ -50,8 +53,8 @@ export function QueryResults({ results, onRemoveResult, onExportResult }: QueryR
                   <div className="flex-1">
                     <CardTitle className="text-lg">{result.name}</CardTitle>
                     <CardDescription className="mt-1">
-                      {result.data.length} 行 × {result.columns.length} 列 • 
-                      {new Date(result.timestamp).toLocaleString('zh-CN')}
+                      {t('queryResults.resultMeta', { rows: result.data.length, columns: result.columns.length })} •{' '}
+                      {new Date(result.timestamp).toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US')}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -77,18 +80,18 @@ export function QueryResults({ results, onRemoveResult, onExportResult }: QueryR
                   <TabsList className="grid w-full max-w-md grid-cols-3">
                     <TabsTrigger value="table" className="gap-2">
                       <Table size={16} weight="bold" />
-                      表格
+                      {t('app.table')}
                     </TabsTrigger>
                     <TabsTrigger value="charts" className="gap-2">
-                      图表
+                      {t('app.charts')}
                     </TabsTrigger>
                     <TabsTrigger value="stats" className="gap-2">
-                      统计
+                      {t('app.statistics')}
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="table" className="mt-4">
-                    <DataTable data={result.data} columns={result.columns} />
+                    <DataTable sourceId={result.id} data={result.data} columns={result.columns} />
                   </TabsContent>
 
                   <TabsContent value="charts" className="mt-4">

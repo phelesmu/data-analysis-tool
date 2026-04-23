@@ -6,6 +6,7 @@ import { GitFork, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface QueryResult {
   id: string
@@ -55,6 +56,7 @@ interface Link {
 }
 
 export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipDiagramProps) {
+  const { t } = useLanguage()
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [tooltip, setTooltip] = useState<TooltipData>({
@@ -343,7 +345,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       .attr('font-family', 'JetBrains Mono, monospace')
       .attr('fill', (d: any) => d.type === 'join' ? 'oklch(0.85 0.05 265)' : 'oklch(0.5 0.01 265)')
       .style('pointer-events', 'none')
-      .text((d: any) => `${d.rowCount} rows × ${d.columnCount} cols`)
+      .text((d: any) => t('relationship.rowsColumns', { rows: d.rowCount, columns: d.columnCount }))
 
     node.append('circle')
       .attr('r', 6)
@@ -387,7 +389,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
     return () => {
       simulation.stop()
     }
-  }, [nodes, links])
+  }, [nodes, links, t])
 
   useEffect(() => {
     if (!svgRef.current) return
@@ -427,9 +429,9 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
         <CardContent className="py-12">
           <div className="text-center space-y-2">
             <GitFork size={48} weight="thin" className="mx-auto text-muted-foreground" />
-            <h3 className="text-lg font-medium text-muted-foreground">暂无关系图</h3>
+            <h3 className="text-lg font-medium text-muted-foreground">{t('relationship.emptyTitle')}</h3>
             <p className="text-sm text-muted-foreground">
-              执行 JOIN 操作后，这里将显示表之间的关系可视化
+              {t('relationship.emptyDesc')}
             </p>
           </div>
         </CardContent>
@@ -439,9 +441,9 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
 
   const getColumnTypeLabel = (type: string) => {
     switch (type) {
-      case 'numeric': return '数字'
-      case 'date': return '日期'
-      case 'text': return '文本'
+      case 'numeric': return t('columnType.numeric')
+      case 'date': return t('columnType.date')
+      case 'text': return t('columnType.text')
       default: return type
     }
   }
@@ -451,10 +453,10 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GitFork size={24} weight="bold" />
-          关系图
+          {t('relationship.title')}
         </CardTitle>
         <CardDescription>
-          可视化显示查询结果表之间的 JOIN 关系。拖动节点重新排列布局，悬停查看列详情，点击列名高亮关系连接
+          {t('relationship.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -486,7 +488,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
                             {tooltipNode.name}
                           </div>
                           <div className="text-muted-foreground">
-                            {tooltipNode.rowCount} 行 × {tooltipNode.columnCount} 列
+                            {t('relationship.rowsColumns', { rows: tooltipNode.rowCount, columns: tooltipNode.columnCount })}
                           </div>
                         </div>
                         <Button
@@ -510,7 +512,7 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
                     {!isCollapsed && (
                       <div>
                         <div className="text-muted-foreground mb-2 font-semibold">
-                          列详情 {highlightedColumn && <span className="text-accent">(点击列名高亮关系)</span>}:
+                          {t('relationship.columnDetails')} {highlightedColumn && <span className="text-accent">({t('relationship.highlightHint')})</span>}:
                         </div>
                         <div className="space-y-1 max-h-64 overflow-y-auto">
                           {tooltipNode.columns.map((col: ColumnInfo, idx: number) => {
@@ -565,7 +567,9 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
                                       <div className="font-semibold">{col.name}</div>
                                       {hasRelationships && (
                                         <div className="text-xs text-muted-foreground">
-                                          点击以{isHighlighted ? '取消' : ''}高亮 {relatedLinks.length} 个关系
+                                          {isHighlighted
+                                            ? t('relationship.clickUnhighlight', { count: relatedLinks.length })
+                                            : t('relationship.clickHighlight', { count: relatedLinks.length })}
                                         </div>
                                       )}
                                     </div>
@@ -587,17 +591,17 @@ export function RelationshipDiagram({ queryResults, joinHistory }: RelationshipD
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded border-2 border-accent bg-card" />
-            <span>原始表</span>
+            <span>{t('relationship.originalTable')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded border-2 border-primary bg-primary" />
-            <span>JOIN 结果</span>
+            <span>{t('relationship.joinResult')}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="24" height="2">
               <line x1="0" y1="1" x2="24" y2="1" stroke="oklch(0.7 0.15 195)" strokeWidth="2" />
             </svg>
-            <span>JOIN 连接</span>
+            <span>{t('relationship.joinLink')}</span>
           </div>
         </div>
       </CardContent>

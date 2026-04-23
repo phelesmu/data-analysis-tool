@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { ChartLine, CalendarBlank, TrendUp } from '@phosphor-icons/react'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts'
 import { format, startOfDay, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, differenceInDays } from 'date-fns'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface TimelineChartProps {
   data: DataRow[]
@@ -24,15 +25,28 @@ type Granularity = 'day' | 'week' | 'month'
 
 export function TimelineChart({ data, columns }: TimelineChartProps) {
   const [showCumulative, setShowCumulative] = useState(true)
+  const [selectedDateColumn, setSelectedDateColumn] = useState<string>('')
+  const { t, locale } = useLanguage()
   
   const dateColumns = useMemo(() => {
     return columns.filter(col => col.type === 'date')
   }, [columns])
 
+  useEffect(() => {
+    if (dateColumns.length === 0) {
+      setSelectedDateColumn('')
+      return
+    }
+
+    if (!selectedDateColumn || !dateColumns.some(column => column.name === selectedDateColumn)) {
+      setSelectedDateColumn(dateColumns[0].name)
+    }
+  }, [dateColumns, selectedDateColumn])
+
   const timelineData = useMemo(() => {
     if (dateColumns.length === 0 || data.length === 0) return null
 
-    const primaryDateColumn = dateColumns[0].name
+    const primaryDateColumn = selectedDateColumn || dateColumns[0].name
     
     const dates = data
       .map(row => row[primaryDateColumn])
@@ -105,7 +119,7 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
         date: dateStr,
         count,
         cumulative: cumulativeSum,
-        displayDate: format(date, displayFormat),
+        displayDate: format(date, displayFormat, { locale }),
         timestamp: date.getTime()
       }
     })
@@ -124,9 +138,9 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
         end: maxDate
       }
     }
-  }, [data, dateColumns])
+  }, [data, dateColumns, locale, selectedDateColumn])
 
-  if (!timelineData) {
+  if (dateColumns.length === 0 || !timelineData) {
     return null
   }
 
@@ -144,7 +158,7 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
           <div className="flex items-center gap-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <ChartLine size={20} weight="bold" />
-              Timeline Distribution
+              {t('timeline.title')}
             </CardTitle>
             <Badge variant="outline" className="gap-1">
               <CalendarBlank size={14} weight="bold" />
@@ -153,13 +167,28 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
           </div>
           <div className="flex items-center gap-3 text-sm flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Granularity:</span>
+              <span className="text-muted-foreground">{t('timeline.selectColumn')}:</span>
+              <div className="flex flex-wrap gap-2">
+                {dateColumns.map((column) => (
+                  <Button
+                    key={column.name}
+                    size="sm"
+                    variant={selectedDateColumn === column.name ? 'default' : 'outline'}
+                    onClick={() => setSelectedDateColumn(column.name)}
+                  >
+                    {column.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">{t('timeline.granularity')}:</span>
               <Badge variant="secondary" className="capitalize">
                 {timelineData.granularity}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Total Records:</span>
+              <span className="text-muted-foreground">{t('timeline.totalRecords')}:</span>
               <span className="font-semibold text-foreground">
                 {timelineData.totalRecords.toLocaleString()}
               </span>
@@ -171,7 +200,7 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
               className="gap-2"
             >
               <TrendUp size={16} weight="bold" />
-              Cumulative Trend
+              {t('timeline.cumulative')}
             </Button>
           </div>
         </div>
@@ -199,7 +228,7 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   stroke="hsl(var(--border))"
                   allowDecimals={false}
-                  label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  label={{ value: t('timeline.records'), angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                 />
                 {showCumulative && (
                   <YAxis 
@@ -234,7 +263,7 @@ export function TimelineChart({ data, columns }: TimelineChartProps) {
                 <Bar 
                   yAxisId="left"
                   dataKey="count" 
-                  name="Records"
+                  name={t('timeline.records')}
                   radius={[4, 4, 0, 0]}
                 >
                   {timelineData.data.map((entry, index) => (

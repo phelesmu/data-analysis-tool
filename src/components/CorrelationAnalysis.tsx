@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ArrowsInLineVertical } from '@phosphor-icons/react'
 import type { CorrelationMatrix, CorrelationPair } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface CorrelationAnalysisProps {
   correlationMatrix: CorrelationMatrix
@@ -18,15 +18,19 @@ function getCorrelationColor(value: number): string {
   return 'from-blue-500 to-blue-600'
 }
 
-function getCorrelationLabel(value: number): { label: string; color: string } {
+function getCorrelationLabel(
+  value: number,
+  t: ReturnType<typeof useLanguage>['t'],
+): { label: string; color: string } {
   const abs = Math.abs(value)
-  if (abs >= 0.7) return { label: 'Strong', color: 'bg-red-500' }
-  if (abs >= 0.5) return { label: 'Moderate', color: 'bg-orange-500' }
-  if (abs >= 0.3) return { label: 'Weak', color: 'bg-yellow-500' }
-  return { label: 'Very Weak', color: 'bg-blue-500' }
+  if (abs >= 0.7) return { label: t('correlation.strong'), color: 'bg-red-500' }
+  if (abs >= 0.5) return { label: t('correlation.moderate'), color: 'bg-orange-500' }
+  if (abs >= 0.3) return { label: t('correlation.weak'), color: 'bg-yellow-500' }
+  return { label: t('correlation.veryWeak'), color: 'bg-blue-500' }
 }
 
 export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: CorrelationAnalysisProps) {
+  const { t } = useLanguage()
   const hasData = correlationMatrix.columns.length >= 2
 
   if (!hasData) {
@@ -35,18 +39,16 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
         <CardHeader>
           <div className="flex items-center gap-2">
             <ArrowsInLineVertical size={24} weight="bold" className="text-primary" />
-            <CardTitle>Correlation Analysis</CardTitle>
+            <CardTitle>{t('correlation.title')}</CardTitle>
           </div>
           <CardDescription>
-            Statistical relationships between numeric columns
+            {t('correlation.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <ArrowsInLineVertical size={48} weight="light" className="text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              Need at least 2 numeric columns to calculate correlations
-            </p>
+            <p className="text-muted-foreground">{t('correlation.needMoreColumns')}</p>
           </div>
         </CardContent>
       </Card>
@@ -59,18 +61,18 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
         <CardHeader>
           <div className="flex items-center gap-2">
             <ArrowsInLineVertical size={24} weight="bold" className="text-primary" />
-            <CardTitle>Top Correlations</CardTitle>
+            <CardTitle>{t('correlation.top')}</CardTitle>
           </div>
           <CardDescription>
-            Strongest relationships between numeric columns
+            {t('correlation.topDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-4">
               {topCorrelations.map((pair, index) => {
-                const corrLabel = getCorrelationLabel(pair.correlation)
-                const direction = pair.correlation >= 0 ? 'Positive' : 'Negative'
+                const corrLabel = getCorrelationLabel(pair.correlation, t)
+                const direction = pair.correlation >= 0 ? t('correlation.positiveDirection') : t('correlation.negativeDirection')
                 
                 return (
                   <div 
@@ -111,7 +113,7 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
               })}
               {topCorrelations.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
-                  No correlations to display
+                  {t('correlation.none')}
                 </div>
               )}
             </div>
@@ -121,9 +123,9 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
 
       <Card>
         <CardHeader>
-          <CardTitle>Correlation Matrix</CardTitle>
+          <CardTitle>{t('correlation.matrix')}</CardTitle>
           <CardDescription>
-            Pearson correlation coefficients (-1 to 1)
+            {t('correlation.matrixDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,7 +135,7 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
                 <thead>
                   <tr>
                     <th className="border p-2 bg-muted/50 text-xs font-medium text-left sticky left-0 z-10">
-                      Column
+                      {t('filters.column')}
                     </th>
                     {correlationMatrix.columns.map((col) => (
                       <th 
@@ -184,15 +186,15 @@ export function CorrelationAnalysis({ correlationMatrix, topCorrelations }: Corr
           <div className="mt-4 flex items-center gap-4 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'oklch(0.7 0.15 195 / 50%)' }} />
-              <span className="text-muted-foreground">Positive</span>
+              <span className="text-muted-foreground">{t('correlation.positive')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'oklch(0.7 0.15 27 / 50%)' }} />
-              <span className="text-muted-foreground">Negative</span>
+              <span className="text-muted-foreground">{t('correlation.negative')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-muted" />
-              <span className="text-muted-foreground">Identity (1.0)</span>
+              <span className="text-muted-foreground">{t('correlation.identity')}</span>
             </div>
           </div>
         </CardContent>

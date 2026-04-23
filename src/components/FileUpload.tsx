@@ -3,6 +3,7 @@ import { UploadSimple, CheckCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useLanguage } from '@/lib/i18n'
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void
@@ -12,6 +13,7 @@ interface FileUploadProps {
 export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { t } = useLanguage()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -44,15 +46,15 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
     
     if (!validExtensions.includes(fileExtension)) {
-      toast.error('Invalid file type', {
-        description: 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)'
+      toast.error(t('fileUpload.invalidType'), {
+        description: t('fileUpload.invalidTypeDesc')
       })
       return
     }
     
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('File too large', {
-        description: 'File size must be less than 50MB'
+      toast.error(t('fileUpload.fileTooLarge'), {
+        description: t('fileUpload.fileTooLargeDesc')
       })
       return
     }
@@ -95,13 +97,11 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
         
         <div className="space-y-2">
           <p className="text-lg font-semibold text-foreground">
-            {isLoading ? 'Processing...' : 'Upload your data file'}
+            {isLoading ? t('fileUpload.processing') : t('fileUpload.upload')}
           </p>
-          <p className="text-sm text-muted-foreground">
-            Drag and drop or click to browse
-          </p>
+          <p className="text-sm text-muted-foreground">{t('fileUpload.dragOrClick')}</p>
           <p className="text-xs text-muted-foreground">
-            Supports CSV, XLSX, and XLS files (max 50MB, 10,000 rows)
+            {t('fileUpload.supports')}
           </p>
         </div>
         
@@ -116,7 +116,7 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
             }}
           >
             <UploadSimple size={20} weight="bold" className="mr-2" />
-            Select File
+            {t('fileUpload.selectFile')}
           </Button>
         )}
       </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DataRow, ColumnInfo, ChartType } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface DataVisualizationProps {
   data: DataRow[]
@@ -18,6 +19,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
   const [selectedColumn, setSelectedColumn] = useState<string>(
     columns.find(c => c.type === 'numeric')?.name || columns[0]?.name || ''
   )
+  const { t } = useLanguage()
 
   const numericColumns = columns.filter(c => c.type === 'numeric')
 
@@ -25,7 +27,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-muted-foreground text-center">No numeric columns available for visualization</p>
+          <p className="text-muted-foreground text-center">{t('viz.none')}</p>
         </CardContent>
       </Card>
     )
@@ -39,12 +41,12 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h3 className="text-lg font-semibold">Data Visualization</h3>
+        <h3 className="text-lg font-semibold">{t('viz.title')}</h3>
         
         <div className="flex flex-wrap items-center gap-3">
           <Select value={selectedColumn} onValueChange={setSelectedColumn}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select column" />
+              <SelectValue placeholder={t('viz.selectColumn')} />
             </SelectTrigger>
             <SelectContent>
               {numericColumns.map((col) => (
@@ -63,7 +65,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
               className="gap-2"
             >
               <ChartBar size={18} weight="bold" />
-              <span className="hidden sm:inline">Bar</span>
+              <span className="hidden sm:inline">{t('viz.bar')}</span>
             </Button>
             <Button
               variant={chartType === 'line' ? 'default' : 'ghost'}
@@ -72,7 +74,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
               className="gap-2"
             >
               <ChartLine size={18} weight="bold" />
-              <span className="hidden sm:inline">Line</span>
+              <span className="hidden sm:inline">{t('viz.line')}</span>
             </Button>
             <Button
               variant={chartType === 'pie' ? 'default' : 'ghost'}
@@ -81,7 +83,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
               className="gap-2"
             >
               <ChartPie size={18} weight="bold" />
-              <span className="hidden sm:inline">Pie</span>
+              <span className="hidden sm:inline">{t('viz.pie')}</span>
             </Button>
           </div>
         </div>
@@ -94,7 +96,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
         <CardContent>
           <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              {chartType === 'bar' && (
+              {chartType === 'bar' ? (
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 265)" />
                   <XAxis 
@@ -116,9 +118,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
                   <Legend />
                   <Bar dataKey="value" fill="oklch(0.35 0.15 265)" name={selectedColumn} />
                 </BarChart>
-              )}
-
-              {chartType === 'line' && (
+              ) : chartType === 'line' ? (
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 265)" />
                   <XAxis 
@@ -146,9 +146,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
                     name={selectedColumn}
                   />
                 </LineChart>
-              )}
-
-              {chartType === 'pie' && (
+              ) : (
                 <PieChart>
                   <Pie
                     data={chartData}
@@ -177,7 +175,7 @@ export function DataVisualization({ data, columns }: DataVisualizationProps) {
           </div>
           {chartData.length >= 20 && (
             <p className="text-xs text-muted-foreground mt-4 text-center">
-              Showing first 20 rows for visualization
+              {t('viz.showingFirst')}
             </p>
           )}
         </CardContent>

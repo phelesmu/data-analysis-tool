@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import type { DataRow, ColumnInfo, FilterConfig } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface DataFiltersProps {
   columns: ColumnInfo[]
@@ -22,6 +23,7 @@ interface DataFiltersProps {
 export function DataFilters({ columns, onFilterChange, activeFiltersCount }: DataFiltersProps) {
   const [filters, setFilters] = useState<FilterConfig[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const { t, locale } = useLanguage()
 
   useEffect(() => {
     onFilterChange(filters)
@@ -55,49 +57,51 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
     if (!column) return []
 
     const commonCompareOps = [
-      { value: 'columnEquals', label: '= Column' },
-      { value: 'columnNotEquals', label: '≠ Column' }
+      { value: 'columnEquals', label: t('filters.equalsColumn') },
+      { value: 'columnNotEquals', label: t('filters.notEqualsColumn') }
     ]
 
     if (column.type === 'date') {
       return [
-        { value: 'equals', label: 'On Date' },
-        { value: 'notEquals', label: 'Not On Date' },
-        { value: 'after', label: 'After' },
-        { value: 'before', label: 'Before' },
-        { value: 'onOrAfter', label: 'On or After' },
-        { value: 'onOrBefore', label: 'On or Before' },
-        { value: 'between', label: 'Between' },
+        { value: 'equals', label: t('filters.equals') },
+        { value: 'notEquals', label: t('filters.notEquals') },
+        { value: 'after', label: t('filters.after') },
+        { value: 'before', label: t('filters.before') },
+        { value: 'onOrAfter', label: t('filters.onOrAfter') },
+        { value: 'onOrBefore', label: t('filters.onOrBefore') },
+        { value: 'between', label: t('filters.between') },
         ...commonCompareOps,
-        { value: 'columnAfter', label: '> Column' },
-        { value: 'columnBefore', label: '< Column' }
+        { value: 'columnAfter', label: t('filters.greaterThanColumn') },
+        { value: 'columnBefore', label: t('filters.lessThanColumn') },
+        { value: 'columnOnOrAfter', label: t('filters.greaterThanOrEqualColumn') },
+        { value: 'columnOnOrBefore', label: t('filters.lessThanOrEqualColumn') },
       ]
     } else if (column.type === 'numeric') {
       return [
-        { value: 'equals', label: 'Equals' },
-        { value: 'notEquals', label: 'Not Equals' },
-        { value: 'greaterThan', label: 'Greater Than' },
-        { value: 'lessThan', label: 'Less Than' },
-        { value: 'greaterThanOrEqual', label: 'Greater Than or Equal' },
-        { value: 'lessThanOrEqual', label: 'Less Than or Equal' },
-        { value: 'between', label: 'Between' },
+        { value: 'equals', label: t('filters.equals') },
+        { value: 'notEquals', label: t('filters.notEquals') },
+        { value: 'greaterThan', label: t('filters.greaterThan') },
+        { value: 'lessThan', label: t('filters.lessThan') },
+        { value: 'greaterThanOrEqual', label: t('filters.greaterThanOrEqual') },
+        { value: 'lessThanOrEqual', label: t('filters.lessThanOrEqual') },
+        { value: 'between', label: t('filters.between') },
         ...commonCompareOps,
-        { value: 'columnGreaterThan', label: '> Column' },
-        { value: 'columnLessThan', label: '< Column' },
-        { value: 'columnGreaterThanOrEqual', label: '≥ Column' },
-        { value: 'columnLessThanOrEqual', label: '≤ Column' }
+        { value: 'columnGreaterThan', label: t('filters.greaterThanColumn') },
+        { value: 'columnLessThan', label: t('filters.lessThanColumn') },
+        { value: 'columnGreaterThanOrEqual', label: t('filters.greaterThanOrEqualColumn') },
+        { value: 'columnLessThanOrEqual', label: t('filters.lessThanOrEqualColumn') }
       ]
     } else {
       return [
-        { value: 'equals', label: 'Equals' },
-        { value: 'notEquals', label: 'Not Equals' },
-        { value: 'contains', label: 'Contains' },
-        { value: 'notContains', label: 'Does Not Contain' },
-        { value: 'startsWith', label: 'Starts With' },
-        { value: 'endsWith', label: 'Ends With' },
+        { value: 'equals', label: t('filters.equals') },
+        { value: 'notEquals', label: t('filters.notEquals') },
+        { value: 'contains', label: t('filters.contains') },
+        { value: 'notContains', label: t('filters.notContains') },
+        { value: 'startsWith', label: t('filters.startsWith') },
+        { value: 'endsWith', label: t('filters.endsWith') },
         ...commonCompareOps,
-        { value: 'columnContains', label: 'Contains Column' },
-        { value: 'columnIn', label: 'Exists in Column' }
+        { value: 'columnContains', label: t('filters.containsColumn') },
+        { value: 'columnIn', label: t('filters.existsInColumn') }
       ]
     }
   }
@@ -110,10 +114,10 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Funnel size={20} weight="bold" />
-                Filters
+                {t('filters.title')}
               </CardTitle>
               {activeFiltersCount > 0 && (
-                <Badge variant="default">{activeFiltersCount} active</Badge>
+                <Badge variant="default">{t('filters.active', { count: activeFiltersCount })}</Badge>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -124,7 +128,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                   onClick={clearAllFilters}
                   className="text-destructive hover:text-destructive"
                 >
-                  Clear All
+                  {t('filters.clearAll')}
                 </Button>
               )}
               <CollapsibleTrigger asChild>
@@ -144,10 +148,10 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
           <CardContent className="space-y-4">
             {filters.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                <p className="mb-3">No filters applied</p>
+                <p className="mb-3">{t('filters.none')}</p>
                 <Button onClick={addFilter} variant="outline" size="sm" className="gap-2">
                   <Plus size={16} weight="bold" />
-                  Add Filter
+                  {t('filters.add')}
                 </Button>
               </div>
             ) : (
@@ -163,7 +167,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                       <div className="flex items-start gap-2">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
-                            <Label htmlFor={`column-${filter.id}`} className="text-xs mb-1">Column</Label>
+                            <Label htmlFor={`column-${filter.id}`} className="text-xs mb-1">{t('filters.column')}</Label>
                             <TooltipProvider>
                               <Tooltip delayDuration={300}>
                                 <TooltipTrigger asChild>
@@ -206,13 +210,15 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                           </div>
 
                           <div>
-                            <Label htmlFor={`operator-${filter.id}`} className="text-xs mb-1">Operator</Label>
+                            <Label htmlFor={`operator-${filter.id}`} className="text-xs mb-1">{t('filters.operator')}</Label>
                             <Select
                               value={filter.operator}
                               onValueChange={(value) => updateFilter(filter.id, { 
                                 operator: value,
                                 valueTo: value === 'between' ? filter.valueTo : undefined,
-                                compareToColumn: value.startsWith('column') ? (filter.compareToColumn || columns[0]?.name) : undefined
+                                compareToColumn: value.startsWith('column')
+                                  ? (filter.compareToColumn || columns.find(c => c.name !== filter.column)?.name)
+                                  : undefined
                               })}
                             >
                               <SelectTrigger id={`operator-${filter.id}`}>
@@ -230,7 +236,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
 
                           <div>
                             <Label htmlFor={`value-${filter.id}`} className="text-xs mb-1 flex items-center gap-1">
-                              {isBetween ? 'From' : isColumnCompare ? 'Compare Column' : 'Value'}
+                              {isBetween ? t('filters.from') : isColumnCompare ? t('filters.compareColumn') : t('filters.value')}
                               {isColumnCompare && <Columns size={14} weight="bold" className="text-accent" />}
                             </Label>
                             {isColumnCompare ? (
@@ -239,8 +245,8 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                                   <TooltipTrigger asChild>
                                     <Select
                                       value={filter.compareToColumn || columns[0]?.name}
-                                      onValueChange={(value) => updateFilter(filter.id, { compareToColumn: value })}
-                                    >
+                                    onValueChange={(value) => updateFilter(filter.id, { compareToColumn: value })}
+                                  >
                                       <SelectTrigger id={`value-${filter.id}`} className="max-w-full">
                                         <SelectValue className="truncate" />
                                       </SelectTrigger>
@@ -275,7 +281,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                                     className="w-full justify-start text-left font-normal"
                                   >
                                     <CalendarBlank size={16} weight="bold" className="mr-2" />
-                                    {filter.value ? format(new Date(filter.value), 'PPP') : 'Select date'}
+                                    {filter.value ? format(new Date(filter.value), 'PPP', { locale }) : t('filters.selectDate')}
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -297,7 +303,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                                 type={column?.type === 'numeric' ? 'number' : 'text'}
                                 value={filter.value}
                                 onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                                placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
+                                placeholder={column?.type === 'numeric' ? '0' : t('filters.value')}
                               />
                             )}
                           </div>
@@ -315,7 +321,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
 
                       {isBetween && !isColumnCompare && (
                         <div className="pl-0 sm:pl-[calc(66.666%+0.5rem)]">
-                          <Label htmlFor={`valueTo-${filter.id}`} className="text-xs mb-1">To</Label>
+                          <Label htmlFor={`valueTo-${filter.id}`} className="text-xs mb-1">{t('filters.to')}</Label>
                           {column?.type === 'date' ? (
                             <Popover>
                               <PopoverTrigger asChild>
@@ -324,7 +330,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                                   className="w-full justify-start text-left font-normal"
                                 >
                                   <CalendarBlank size={16} weight="bold" className="mr-2" />
-                                  {filter.valueTo ? format(new Date(filter.valueTo), 'PPP') : 'Select date'}
+                                  {filter.valueTo ? format(new Date(filter.valueTo), 'PPP', { locale }) : t('filters.selectDate')}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
@@ -346,7 +352,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
                               type={column?.type === 'numeric' ? 'number' : 'text'}
                               value={filter.valueTo || ''}
                               onChange={(e) => updateFilter(filter.id, { valueTo: e.target.value })}
-                              placeholder={column?.type === 'numeric' ? '0' : 'Enter value'}
+                              placeholder={column?.type === 'numeric' ? '0' : t('filters.value')}
                             />
                           )}
                         </div>
@@ -357,7 +363,7 @@ export function DataFilters({ columns, onFilterChange, activeFiltersCount }: Dat
 
                 <Button onClick={addFilter} variant="outline" size="sm" className="w-full gap-2">
                   <Plus size={16} weight="bold" />
-                  Add Another Filter
+                  {t('filters.addAnother')}
                 </Button>
               </div>
             )}

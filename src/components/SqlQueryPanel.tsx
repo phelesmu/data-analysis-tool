@@ -7,6 +7,8 @@ import { Play, BookOpen, X } from '@phosphor-icons/react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
+import { parseDateValue } from '@/lib/dataUtils'
 
 interface SqlQueryPanelProps {
   data: DataRow[]
@@ -18,12 +20,13 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string>('')
   const [showExamples, setShowExamples] = useState(true)
+  const { t, localeCode } = useLanguage()
 
   const executeQuery = async () => {
     setError('')
     
     if (!query.trim()) {
-      setError('请输入 SQL 查询语句')
+      setError(t('sql.empty'))
       return
     }
 
@@ -33,20 +36,14 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
       const result = alasql(query, [data])
       
       if (!Array.isArray(result) || result.length === 0) {
-        setError('查询未返回任何数据')
+        setError(t('sql.noData'))
         return
       }
 
       const newColumns: ColumnInfo[] = Object.keys(result[0]).map(key => {
         const sampleValues = result.slice(0, 10).map(row => row[key]).filter(v => v != null)
         const isNumeric = sampleValues.every(v => typeof v === 'number' || !isNaN(Number(v)))
-        const isDate = sampleValues.some(v => {
-          if (typeof v === 'string') {
-            const date = new Date(v)
-            return !isNaN(date.getTime())
-          }
-          return false
-        })
+        const isDate = sampleValues.some(v => parseDateValue(v) !== null)
         
         return {
           name: key,
@@ -54,41 +51,43 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
         }
       })
 
-      const queryName = `查询结果 ${new Date().toLocaleTimeString('zh-CN')}`
+      const queryName = t('sql.resultName', {
+        time: new Date().toLocaleTimeString(localeCode),
+      })
       onQueryResult(result, newColumns, queryName)
       setQuery('')
       setShowExamples(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '查询执行失败')
+      setError(err instanceof Error ? err.message : t('sql.failed'))
     }
   }
 
   const exampleQueries = [
     {
-      title: '选择特定列',
+      title: t('sql.example.selectColumns.title'),
       query: `SELECT ${columns.slice(0, 3).map(c => `[${c.name}]`).join(', ')} FROM ?`,
-      description: '选择前几列数据'
+      description: t('sql.example.selectColumns.desc')
     },
     {
-      title: '聚合统计',
+      title: t('sql.example.aggregate.title'),
       query: columns.filter(c => c.type === 'numeric').length > 0
-        ? `SELECT COUNT(*) as 总数, AVG([${columns.find(c => c.type === 'numeric')?.name}]) as 平均值 FROM ?`
-        : 'SELECT COUNT(*) as 总数 FROM ?',
-      description: '计算记录总数和平均值'
+        ? `SELECT COUNT(*) as total_count, AVG([${columns.find(c => c.type === 'numeric')?.name}]) as average_value FROM ?`
+        : 'SELECT COUNT(*) as total_count FROM ?',
+      description: t('sql.example.aggregate.desc')
     },
     {
-      title: '分组统计',
+      title: t('sql.example.group.title'),
       query: columns.length > 1
-        ? `SELECT [${columns[0].name}], COUNT(*) as 数量 FROM ? GROUP BY [${columns[0].name}] ORDER BY 数量 DESC`
-        : 'SELECT COUNT(*) as 数量 FROM ?',
-      description: '按列分组并统计数量'
+        ? `SELECT [${columns[0].name}], COUNT(*) as count_value FROM ? GROUP BY [${columns[0].name}] ORDER BY count_value DESC`
+        : 'SELECT COUNT(*) as count_value FROM ?',
+      description: t('sql.example.group.desc')
     },
     {
-      title: '过滤数据',
+      title: t('sql.example.filter.title'),
       query: columns.filter(c => c.type === 'numeric').length > 0
         ? `SELECT * FROM ? WHERE [${columns.find(c => c.type === 'numeric')?.name}] > 0`
         : 'SELECT * FROM ? LIMIT 10',
-      description: '筛选符合条件的数据'
+      description: t('sql.example.filter.desc')
     }
   ]
 
@@ -104,10 +103,10 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <Play size={24} weight="bold" />
-              SQL 查询编辑器
+              {t('sql.title')}
             </CardTitle>
             <CardDescription className="mt-2">
-              使用 SQL 语句查询和转换数据。表名使用 <code className="px-1 py-0.5 rounded bg-muted text-xs font-mono">?</code> 表示当前数据集。
+              {t('sql.description')} <code className="px-1 py-0.5 rounded bg-muted text-xs font-mono">?</code>
             </CardDescription>
           </div>
           <Button
@@ -123,7 +122,7 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
         {showExamples && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">示例查询</h4>
+              <h4 className="text-sm font-medium">{t('sql.examples')}</h4>
               <Button
                 variant="ghost"
                 size="sm"
@@ -143,7 +142,7 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h5 className="text-sm font-medium">{example.title}</h5>
-                        <Badge variant="outline" className="text-xs">点击使用</Badge>
+                        <Badge variant="outline" className="text-xs">{t('sql.clickToUse')}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">{example.description}</p>
                       <code className="text-xs block bg-muted p-2 rounded font-mono break-all">
@@ -159,16 +158,16 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">SQL 查询</label>
+            <label className="text-sm font-medium">{t('sql.query')}</label>
             <div className="flex gap-2 text-xs text-muted-foreground">
-              <span>可用列数: {columns.length}</span>
+              <span>{t('sql.availableColumns')}: {columns.length}</span>
               <span>•</span>
-              <span>数据行数: {data.length}</span>
+              <span>{t('sql.dataRows')}: {data.length}</span>
             </div>
           </div>
           <Textarea
             id="sql-query"
-            placeholder="SELECT * FROM ? LIMIT 10"
+            placeholder={t('sql.placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="font-mono text-sm min-h-[120px]"
@@ -180,7 +179,7 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
             }}
           />
           <p className="text-xs text-muted-foreground">
-            提示：使用 <kbd className="px-1 py-0.5 rounded bg-muted">Ctrl/Cmd + Enter</kbd> 快速执行
+            {t('sql.tip')} <kbd className="px-1 py-0.5 rounded bg-muted">Ctrl/Cmd + Enter</kbd>
           </p>
         </div>
 
@@ -197,7 +196,7 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
             size="lg"
           >
             <Play size={20} weight="bold" className="mr-2" />
-            执行查询
+            {t('sql.run')}
           </Button>
           <Button 
             onClick={() => {
@@ -207,12 +206,12 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
             variant="outline"
             size="lg"
           >
-            清空
+            {t('sql.clear')}
           </Button>
         </div>
 
         <div className="rounded-lg bg-muted p-4 space-y-2">
-          <h4 className="text-sm font-medium">可用列名</h4>
+          <h4 className="text-sm font-medium">{t('sql.columns')}</h4>
           <div className="flex flex-wrap gap-2">
             {columns.map((col) => (
               <Badge
@@ -223,7 +222,7 @@ export function SqlQueryPanel({ data, columns, onQueryResult }: SqlQueryPanelPro
               >
                 {col.name}
                 <span className="ml-1 text-xs opacity-60">
-                  ({col.type === 'numeric' ? '数字' : col.type === 'date' ? '日期' : '文本'})
+                  ({t(`columnType.${col.type}`)})
                 </span>
               </Badge>
             ))}

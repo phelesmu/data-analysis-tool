@@ -2,12 +2,15 @@ import { Database } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 export interface DataSource {
   id: string
   name: string
   data: DataRow[]
   columns: ColumnInfo[]
+  baseSourceId?: string
+  kind?: 'base' | 'projection'
 }
 
 interface DataSourceSelectorProps {
@@ -18,17 +21,18 @@ interface DataSourceSelectorProps {
 
 export function DataSourceSelector({ currentSource, sources, onSourceChange }: DataSourceSelectorProps) {
   const selectedSource = sources.find(s => s.id === currentSource)
+  const { t } = useLanguage()
 
   return (
     <div className="flex items-center gap-3 bg-muted/50 p-3 rounded-lg border">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Database size={18} weight="bold" />
-        <span>Data Source:</span>
+        <span>{t('dataSource.label')}:</span>
       </div>
       
       <Select value={currentSource} onValueChange={onSourceChange}>
         <SelectTrigger className="w-[280px] bg-card">
-          <SelectValue placeholder="Select data source" />
+          <SelectValue placeholder={t('dataSource.select')} />
         </SelectTrigger>
         <SelectContent>
           {sources.map((source) => (
@@ -51,9 +55,10 @@ export function DataSourceSelector({ currentSource, sources, onSourceChange }: D
 
       {selectedSource && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
-          <span>{selectedSource.data.length.toLocaleString()} rows</span>
-          <span>×</span>
-          <span>{selectedSource.columns.length} columns</span>
+          <span>{t('dataSource.rowsColumns', {
+            rows: selectedSource.data.length.toLocaleString(),
+            columns: selectedSource.columns.length,
+          })}</span>
         </div>
       )}
     </div>

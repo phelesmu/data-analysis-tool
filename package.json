@@ -4,12 +4,12 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "npm exec --yes --package=node@22.12.0 -- node node_modules/vite/bin/vite.js --configLoader runner",
         "kill": "fuser -k 5000/tcp",
-        "build": "tsc -b --noCheck && vite build",
+        "build": "npm exec --yes --package=node@22.12.0 -- node node_modules/typescript/bin/tsc -b --noCheck && npm exec --yes --package=node@22.12.0 -- node node_modules/vite/bin/vite.js build --configLoader runner",
         "lint": "eslint .",
-        "optimize": "vite optimize",
-        "preview": "vite preview"
+        "optimize": "npm exec --yes --package=node@22.12.0 -- node node_modules/vite/bin/vite.js optimize --configLoader runner",
+        "preview": "npm exec --yes --package=node@22.12.0 -- node node_modules/vite/bin/vite.js preview --configLoader runner"
     },
     "dependencies": {
         "@github/spark": ">=0.43.1 <1",

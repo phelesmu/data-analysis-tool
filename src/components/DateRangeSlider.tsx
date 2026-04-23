@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarBlank, ArrowsOutLineHorizontal, X } from '@phosphor-icons/react'
 import { format, differenceInDays, addDays } from 'date-fns'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface DateRangeSliderProps {
   data: DataRow[]
@@ -28,6 +29,7 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
   const [selectedColumn, setSelectedColumn] = useState<string | null>(null)
   const [sliderValues, setSliderValues] = useState<[number, number]>([0, 100])
   const [isActive, setIsActive] = useState(false)
+  const { t, locale } = useLanguage()
 
   const dateColumns = useMemo(() => {
     return columns.filter(col => col.type === 'date')
@@ -113,10 +115,10 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
           <div className="flex items-center gap-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <CalendarBlank size={20} weight="bold" />
-              Date Range Filter
+              {t('dateRange.title')}
             </CardTitle>
             {isActive && (
-              <Badge variant="default">Active</Badge>
+              <Badge variant="default">{t('dateRange.active')}</Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -128,7 +130,7 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
                 className="text-destructive hover:text-destructive gap-1"
               >
                 <X size={16} weight="bold" />
-                Clear
+                {t('dateRange.clear')}
               </Button>
             )}
           </div>
@@ -137,7 +139,7 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
 
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Select Date Column</label>
+          <label className="text-sm font-medium">{t('dateRange.selectColumn')}</label>
           <div className="flex flex-wrap gap-2">
             {dateRanges.map(({ column }) => (
               <Button
@@ -162,10 +164,10 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <ArrowsOutLineHorizontal size={16} weight="bold" className="text-muted-foreground" />
-                  <span className="font-medium">Date Range</span>
+                  <span className="font-medium">{t('dateRange.range')}</span>
                 </div>
                 <span className="text-muted-foreground">
-                  {differenceInDays(selectedDates.endDate, selectedDates.startDate) + 1} days
+                  {t('dateRange.days', { count: differenceInDays(selectedDates.endDate, selectedDates.startDate) + 1 })}
                 </span>
               </div>
 
@@ -188,30 +190,30 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground font-medium">Start Date</label>
+                  <label className="text-xs text-muted-foreground font-medium">{t('dateRange.startDate')}</label>
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                     <CalendarBlank size={18} weight="bold" className="text-accent" />
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold">
-                        {format(selectedDates.startDate, 'MMM d, yyyy')}
+                        {format(selectedDates.startDate, 'PPP', { locale })}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {format(selectedDates.startDate, 'EEEE')}
+                        {format(selectedDates.startDate, 'EEEE', { locale })}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground font-medium">End Date</label>
+                  <label className="text-xs text-muted-foreground font-medium">{t('dateRange.endDate')}</label>
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                     <CalendarBlank size={18} weight="bold" className="text-accent" />
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold">
-                        {format(selectedDates.endDate, 'MMM d, yyyy')}
+                        {format(selectedDates.endDate, 'PPP', { locale })}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {format(selectedDates.endDate, 'EEEE')}
+                        {format(selectedDates.endDate, 'EEEE', { locale })}
                       </span>
                     </div>
                   </div>
@@ -220,7 +222,10 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
 
               <div className="flex items-center justify-between pt-2 border-t">
                 <div className="text-xs text-muted-foreground">
-                  Dataset: {format(currentRange.range.min, 'MMM d, yyyy')} - {format(currentRange.range.max, 'MMM d, yyyy')}
+                  {t('dateRange.dataset', {
+                    start: format(currentRange.range.min, 'PPP', { locale }),
+                    end: format(currentRange.range.max, 'PPP', { locale }),
+                  })}
                 </div>
               </div>
             </div>
@@ -231,7 +236,7 @@ export function DateRangeSlider({ data, columns, onDateRangeChange }: DateRangeS
                 className="w-full gap-2"
               >
                 <CalendarBlank size={18} weight="bold" />
-                Apply Date Filter
+                {t('dateRange.apply')}
               </Button>
             )}
           </div>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, LineChart, ComposedChart } from 'recharts'
 import { ChartScatter } from '@phosphor-icons/react'
 import type { DataRow, ColumnInfo } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface ScatterPlotProps {
   data: DataRow[]
@@ -50,15 +51,16 @@ function calculatePearsonCorrelation(x: number[], y: number[]): number {
   return numerator / denominator
 }
 
-function getCorrelationLabel(value: number): { label: string; color: string } {
+function getCorrelationLabel(value: number, t: ReturnType<typeof useLanguage>['t']): { label: string; color: string } {
   const abs = Math.abs(value)
-  if (abs >= 0.7) return { label: 'Strong', color: 'bg-red-500' }
-  if (abs >= 0.5) return { label: 'Moderate', color: 'bg-orange-500' }
-  if (abs >= 0.3) return { label: 'Weak', color: 'bg-yellow-500' }
-  return { label: 'Very Weak', color: 'bg-blue-500' }
+  if (abs >= 0.7) return { label: t('correlation.strong'), color: 'bg-red-500' }
+  if (abs >= 0.5) return { label: t('correlation.moderate'), color: 'bg-orange-500' }
+  if (abs >= 0.3) return { label: t('correlation.weak'), color: 'bg-yellow-500' }
+  return { label: t('correlation.veryWeak'), color: 'bg-blue-500' }
 }
 
 export function ScatterPlot({ data, columns }: ScatterPlotProps) {
+  const { t } = useLanguage()
   const numericColumns = useMemo(() => 
     columns.filter(col => col.type === 'numeric'),
     [columns]
@@ -104,8 +106,8 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
   }, [scatterData, regression])
 
   const correlationInfo = useMemo(() => {
-    return getCorrelationLabel(correlation)
-  }, [correlation])
+    return getCorrelationLabel(correlation, t)
+  }, [correlation, t])
 
   if (numericColumns.length < 2) {
     return (
@@ -113,17 +115,17 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
         <CardHeader>
           <div className="flex items-center gap-2">
             <ChartScatter size={24} weight="bold" className="text-primary" />
-            <CardTitle>Scatter Plot</CardTitle>
+            <CardTitle>{t('scatter.title')}</CardTitle>
           </div>
           <CardDescription>
-            Visualize correlations between numeric columns
+            {t('scatter.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <ChartScatter size={48} weight="light" className="text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              Need at least 2 numeric columns for scatter plot
+              {t('scatter.needMoreColumns')}
             </p>
           </div>
         </CardContent>
@@ -136,20 +138,20 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <ChartScatter size={24} weight="bold" className="text-primary" />
-          <CardTitle>Scatter Plot</CardTitle>
+          <CardTitle>{t('scatter.title')}</CardTitle>
         </div>
         <CardDescription>
-          Explore relationships between two numeric variables
+          {t('scatter.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">X-Axis</label>
+              <label className="text-sm font-medium">{t('scatter.xAxis')}</label>
               <Select value={xColumn} onValueChange={setXColumn}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select X column" />
+                  <SelectValue placeholder={t('scatter.selectX')} />
                 </SelectTrigger>
                 <SelectContent>
                   {numericColumns.map(col => (
@@ -162,10 +164,10 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Y-Axis</label>
+              <label className="text-sm font-medium">{t('scatter.yAxis')}</label>
               <Select value={yColumn} onValueChange={setYColumn}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Y column" />
+                  <SelectValue placeholder={t('scatter.selectY')} />
                 </SelectTrigger>
                 <SelectContent>
                   {numericColumns.map(col => (
@@ -181,7 +183,7 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
           {scatterData.length > 0 && (
             <div className="flex flex-wrap items-center gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Correlation:</span>
+                <span className="text-sm text-muted-foreground">{t('scatter.correlation')}:</span>
                 <span className="text-lg font-bold font-mono">{correlation.toFixed(3)}</span>
                 <Badge className={correlationInfo.color}>{correlationInfo.label}</Badge>
               </div>
@@ -190,7 +192,7 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
                 <span className="text-lg font-bold font-mono">{regression.r2.toFixed(3)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Data Points:</span>
+                <span className="text-sm text-muted-foreground">{t('scatter.dataPoints')}:</span>
                 <span className="text-lg font-bold font-mono">{scatterData.length}</span>
               </div>
             </div>
@@ -247,14 +249,14 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
                   />
                   
                   <Scatter 
-                    name="Data Points" 
+                    name={t('scatter.legendDataPoints')} 
                     data={scatterData} 
                     fill="oklch(0.35 0.15 265)"
                     fillOpacity={0.6}
                   />
                   
                   <Line 
-                    name="Regression Line" 
+                    name={t('scatter.legendRegressionLine')} 
                     data={regressionLine} 
                     dataKey="y"
                     stroke="oklch(0.7 0.15 195)"
@@ -265,20 +267,24 @@ export function ScatterPlot({ data, columns }: ScatterPlotProps) {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                No data available for selected columns
+                {t('scatter.noData')}
               </div>
             )}
           </div>
 
           {scatterData.length > 0 && (
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
-              <h4 className="text-sm font-semibold mb-2">Regression Analysis</h4>
+              <h4 className="text-sm font-semibold mb-2">{t('scatter.regressionTitle')}</h4>
               <div className="space-y-1 text-sm font-mono">
                 <p className="text-muted-foreground">
                   y = <span className="text-foreground font-medium">{regression.slope.toFixed(4)}</span>x + <span className="text-foreground font-medium">{regression.intercept.toFixed(4)}</span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {correlation >= 0 ? 'Positive' : 'Negative'} correlation: As {xColumn} increases, {yColumn} tends to {correlation >= 0 ? 'increase' : 'decrease'}
+                  {correlation >= 0 ? t('scatter.positive') : t('scatter.negative')} {t('scatter.correlation').toLowerCase()}:
+                  {' '}
+                  {correlation >= 0
+                    ? t('scatter.trendIncrease', { x: xColumn, y: yColumn })
+                    : t('scatter.trendDecrease', { x: xColumn, y: yColumn })}
                 </p>
               </div>
             </div>

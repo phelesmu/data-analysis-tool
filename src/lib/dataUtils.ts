@@ -1,5 +1,11 @@
 import * as XLSX from 'xlsx'
+import { format as formatDate } from 'date-fns'
 import type { DataRow, ColumnInfo, Statistics, FilterConfig, CorrelationMatrix, CorrelationPair, GroupByConfig, AggregationFunction } from './types'
+
+interface ParsedDateValue {
+  date: Date
+  hasTime: boolean
+}
 
 export function parseFile(file: File): Promise<{ data: DataRow[]; columns: ColumnInfo[] }> {
   return new Promise((resolve, reject) => {
@@ -173,62 +179,147 @@ async function parseExcelAsync(data: ArrayBuffer): Promise<DataRow[]> {
   })
 }
 
+function formatParsedDateValue(parsedDate: ParsedDateValue): string {
+  return parsedDate.hasTime
+    ? formatDate(parsedDate.date, 'yyyy-MM-dd HH:mm:ss')
+    : formatDate(parsedDate.date, 'yyyy-MM-dd')
+}
+
+function buildValidatedDate(
+  year: number,
+  month: number,
+  day: number,
+  hour: number = 0,
+  minute: number = 0,
+  second: number = 0,
+): Date | null {
+  const date = new Date(year, month - 1, day, hour, minute, second)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute ||
+    date.getSeconds() !== second
+  ) {
+    return null
+  }
+
+  return date
+}
+
+function normalizeYear(year: number): number {
+  if (year >= 100) return year
+  return year >= 70 ? 1900 + year : 2000 + year
+}
+
+function parseNumericValue(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value !== 'string') return null
+
+  const raw = value.trim()
+  if (raw.length === 0) return null
+
+  const plainNumberPattern = /^[+-]?(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?$/
+  const groupedNumberPattern = /^[+-]?(?:\d{1,3}(?:,\d{3})+)(?:\.\d+)?(?:[eE][+-]?\d+)?$/
+
+  if (!plainNumberPattern.test(raw) && !groupedNumberPattern.test(raw)) {
+    return null
+  }
+
+  const normalized = raw.replace(/,/g, '')
+  const numericValue = Number(normalized)
+
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+export function parseDateValue(value: unknown): ParsedDateValue | null {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    const hasTime = value.getHours() !== 0 || value.getMinutes() !== 0 || value.getSeconds() !== 0
+    return { date: value, hasTime }
+  }
+
+  if (typeof value !== 'string') return null
+
+  const raw = value.trim()
+  if (raw.length === 0) return null
+  if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(raw)) return null
+  if (!/[-/.]/.test(raw)) return null
+
+  const isoMatch = raw.match(
+    /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  )
+  if (isoMatch) {
+    const [, year, month, day, hour = '0', minute = '0', second = '0'] = isoMatch
+    const date = buildValidatedDate(
+      Number(year),
+      Number(month),
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    )
+    if (date) {
+      return {
+        date,
+        hasTime: isoMatch[4] !== undefined,
+      }
+    }
+  }
+
+  const slashMatch = raw.match(
+    /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?)?$/
+  )
+  if (slashMatch) {
+    let [, month, day, year, hour = '0', minute = '0', second = '0', meridiem] = slashMatch
+    let normalizedHour = Number(hour)
+
+    if (meridiem) {
+      const upperMeridiem = meridiem.toUpperCase()
+      if (upperMeridiem === 'PM' && normalizedHour < 12) normalizedHour += 12
+      if (upperMeridiem === 'AM' && normalizedHour === 12) normalizedHour = 0
+    }
+
+    const date = buildValidatedDate(
+      normalizeYear(Number(year)),
+      Number(month),
+      Number(day),
+      normalizedHour,
+      Number(minute),
+      Number(second),
+    )
+    if (date) {
+      return {
+        date,
+        hasTime: slashMatch[4] !== undefined,
+      }
+    }
+  }
+
+  return null
+}
+
 function parseValue(value: unknown): string | number | null {
   if (value === null || value === undefined || value === '') return null
-  
-  if (value instanceof Date) {
-    const hasTime = value.getHours() !== 0 || value.getMinutes() !== 0 || value.getSeconds() !== 0
-    if (hasTime) {
-      return value.toISOString().replace('T', ' ').split('.')[0]
-    }
-    return value.toISOString().split('T')[0]
+
+  const numericValue = parseNumericValue(value)
+  if (numericValue !== null) {
+    return numericValue
   }
-  
-  const strValue = String(value).trim()
-  
-  if (isDateString(strValue)) {
-    const date = new Date(strValue)
-    if (!isNaN(date.getTime())) {
-      const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0
-      if (hasTime) {
-        return date.toISOString().replace('T', ' ').split('.')[0]
-      }
-      return date.toISOString().split('T')[0]
-    }
+
+  const parsedDate = parseDateValue(value)
+  if (parsedDate) {
+    return formatParsedDateValue(parsedDate)
   }
-  
-  const numValue = Number(strValue)
-  
-  if (!isNaN(numValue) && strValue !== '') {
-    return numValue
-  }
-  
-  return strValue
+
+  return String(value).trim()
 }
 
 function isDateString(value: unknown): boolean {
-  if (typeof value !== 'string' && typeof value !== 'number') return false
-  
-  const str = String(value).trim()
-  if (str.length === 0) return false
-  
-  const datePatterns = [
-    /^\d{4}-\d{1,2}-\d{1,2}$/,
-    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
-    /^\d{1,2}-\d{1,2}-\d{4}$/,
-    /^\d{4}\/\d{1,2}\/\d{1,2}$/,
-    /^\d{1,2}\.\d{1,2}\.\d{4}$/,
-    /^\d{4}\.\d{1,2}\.\d{1,2}$/,
-    /^\d{4}-\d{1,2}-\d{1,2}[T\s]\d{1,2}:\d{1,2}(:\d{1,2})?/,
-    /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?/,
-  ]
-  
-  if (!datePatterns.some(pattern => pattern.test(str))) {
-    return false
-  }
-  
-  const date = new Date(str)
-  return !isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100
+  return parseDateValue(value) !== null
 }
 
 function detectColumns(data: DataRow[]): ColumnInfo[] {
@@ -238,21 +329,23 @@ function detectColumns(data: DataRow[]): ColumnInfo[] {
   const columns: ColumnInfo[] = []
 
   Object.keys(firstRow).forEach(key => {
-    const sampleValues = data.slice(0, 20).map(row => row[key]).filter(val => val !== null)
+    const sampleValues = data.slice(0, 50).map(row => row[key]).filter(val => val !== null)
     
     if (sampleValues.length === 0) {
       columns.push({ name: key, type: 'text' })
       return
     }
-    
-    const isNumeric = sampleValues.some(val => typeof val === 'number')
-    const isDate = sampleValues.filter(val => typeof val === 'string').length > 0 &&
-                  sampleValues.filter(val => typeof val === 'string').every(val => isDateString(val))
-    
+
+    const numericCount = sampleValues.filter(val => typeof val === 'number').length
+    const stringValues = sampleValues.filter((val): val is string => typeof val === 'string' && val.trim().length > 0)
+    const dateCount = stringValues.filter(val => isDateString(val)).length
+    const numericRatio = numericCount / sampleValues.length
+    const dateRatio = stringValues.length > 0 ? dateCount / stringValues.length : 0
+
     let type: 'numeric' | 'text' | 'date' = 'text'
-    if (isDate) {
+    if (stringValues.length > 0 && numericCount === 0 && dateRatio >= 0.8) {
       type = 'date'
-    } else if (isNumeric) {
+    } else if (numericCount > 0 && numericRatio >= 0.6) {
       type = 'numeric'
     }
     
@@ -310,13 +403,13 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
         const compareValue = row[compareColumn]
         
         if (column.type === 'date') {
-          const dateValue = columnValue !== null ? new Date(String(columnValue)) : null
-          const compareDateValue = compareValue !== null ? new Date(String(compareValue)) : null
+          const dateValue = parseDateValue(columnValue)
+          const compareDateValue = parseDateValue(compareValue)
           
-          if (!dateValue || isNaN(dateValue.getTime()) || !compareDateValue || isNaN(compareDateValue.getTime())) return false
+          if (!dateValue || !compareDateValue) return false
           
-          const dateValueTime = new Date(dateValue.toDateString()).getTime()
-          const compareDateValueTime = new Date(compareDateValue.toDateString()).getTime()
+          const dateValueTime = dateValue.date.getTime()
+          const compareDateValueTime = compareDateValue.date.getTime()
           
           switch (filter.operator) {
             case 'columnEquals':
@@ -327,6 +420,12 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
               return dateValueTime > compareDateValueTime
             case 'columnBefore':
               return dateValueTime < compareDateValueTime
+            case 'columnGreaterThanOrEqual':
+            case 'columnOnOrAfter':
+              return dateValueTime >= compareDateValueTime
+            case 'columnLessThanOrEqual':
+            case 'columnOnOrBefore':
+              return dateValueTime <= compareDateValueTime
             default:
               return true
           }
@@ -372,32 +471,32 @@ export function applyFilters(data: DataRow[], filters: FilterConfig[], columns: 
       }
 
       if (column.type === 'date') {
-        const dateValue = columnValue !== null ? new Date(String(columnValue)) : null
-        const filterDate = filter.value ? new Date(filter.value) : null
-        const filterDateTo = filter.valueTo ? new Date(filter.valueTo) : null
+        const dateValue = parseDateValue(columnValue)
+        const filterDate = parseDateValue(filter.value)
+        const filterDateTo = parseDateValue(filter.valueTo)
 
-        if (!dateValue || isNaN(dateValue.getTime())) return false
+        if (!dateValue) return false
 
-        const dateValueTime = new Date(dateValue.toDateString()).getTime()
-        const filterDateTime = filterDate ? new Date(filterDate.toDateString()).getTime() : null
-        const filterDateToTime = filterDateTo ? new Date(filterDateTo.toDateString()).getTime() : null
+        const dateValueDayTime = new Date(dateValue.date.toDateString()).getTime()
+        const filterDateTime = filterDate ? new Date(filterDate.date.toDateString()).getTime() : null
+        const filterDateToTime = filterDateTo ? new Date(filterDateTo.date.toDateString()).getTime() : null
 
         switch (filter.operator) {
           case 'equals':
-            return filterDateTime !== null && dateValueTime === filterDateTime
+            return filterDateTime !== null && dateValueDayTime === filterDateTime
           case 'notEquals':
-            return filterDateTime !== null && dateValueTime !== filterDateTime
+            return filterDateTime !== null && dateValueDayTime !== filterDateTime
           case 'after':
-            return filterDateTime !== null && dateValueTime > filterDateTime
+            return filterDateTime !== null && dateValueDayTime > filterDateTime
           case 'before':
-            return filterDateTime !== null && dateValueTime < filterDateTime
+            return filterDateTime !== null && dateValueDayTime < filterDateTime
           case 'onOrAfter':
-            return filterDateTime !== null && dateValueTime >= filterDateTime
+            return filterDateTime !== null && dateValueDayTime >= filterDateTime
           case 'onOrBefore':
-            return filterDateTime !== null && dateValueTime <= filterDateTime
+            return filterDateTime !== null && dateValueDayTime <= filterDateTime
           case 'between':
             return filterDateTime !== null && filterDateToTime !== null && 
-                   dateValueTime >= filterDateTime && dateValueTime <= filterDateToTime
+                   dateValueDayTime >= filterDateTime && dateValueDayTime <= filterDateToTime
           default:
             return true
         }
@@ -456,10 +555,10 @@ export function applyDateRangeFilter(data: DataRow[], column: string, startDate:
     const columnValue = row[column]
     if (columnValue === null) return false
 
-    const dateValue = new Date(String(columnValue))
-    if (isNaN(dateValue.getTime())) return false
+    const parsedDate = parseDateValue(columnValue)
+    if (!parsedDate) return false
 
-    const dateValueTime = new Date(dateValue.toDateString()).getTime()
+    const dateValueTime = new Date(parsedDate.date.toDateString()).getTime()
     const startDateTime = new Date(startDate.toDateString()).getTime()
     const endDateTime = new Date(endDate.toDateString()).getTime()
 
@@ -607,7 +706,10 @@ function calculateAggregation(values: (string | number | null)[], func: Aggregat
         if (numValues.length === 0) return null
         return Math.min(...numValues)
       } else if (columnType === 'date') {
-        const dateValues = validValues.map(v => new Date(String(v)).getTime()).filter(t => !isNaN(t))
+        const dateValues = validValues
+          .map(v => parseDateValue(v))
+          .filter((parsed): parsed is ParsedDateValue => parsed !== null)
+          .map(parsed => parsed.date.getTime())
         if (dateValues.length === 0) return null
         return Math.min(...dateValues)
       }
@@ -620,7 +722,10 @@ function calculateAggregation(values: (string | number | null)[], func: Aggregat
         if (numValues.length === 0) return null
         return Math.max(...numValues)
       } else if (columnType === 'date') {
-        const dateValues = validValues.map(v => new Date(String(v)).getTime()).filter(t => !isNaN(t))
+        const dateValues = validValues
+          .map(v => parseDateValue(v))
+          .filter((parsed): parsed is ParsedDateValue => parsed !== null)
+          .map(parsed => parsed.date.getTime())
         if (dateValues.length === 0) return null
         return Math.max(...dateValues)
       }

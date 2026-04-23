@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Plus, X, FunnelSimple, Sparkle } from '@phosphor-icons/react'
 import type { ColumnInfo, DataRow, AggregationFunction } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface GroupByPanelProps {
   data: DataRow[]
@@ -21,22 +22,23 @@ interface AggregationConfig {
   alias: string
 }
 
-const AGGREGATION_FUNCTIONS: { value: AggregationFunction; label: string; description: string }[] = [
-  { value: 'count', label: 'Count', description: 'Count all values' },
-  { value: 'countDistinct', label: 'Count Distinct', description: 'Count unique values' },
-  { value: 'sum', label: 'Sum', description: 'Sum of numeric values' },
-  { value: 'avg', label: 'Average', description: 'Average of numeric values' },
-  { value: 'min', label: 'Minimum', description: 'Minimum value' },
-  { value: 'max', label: 'Maximum', description: 'Maximum value' },
-  { value: 'median', label: 'Median', description: 'Median of numeric values' },
-  { value: 'stddev', label: 'Std Deviation', description: 'Standard deviation' },
-  { value: 'variance', label: 'Variance', description: 'Variance of values' },
-]
-
 export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps) {
+  const { t } = useLanguage()
   const [groupByColumns, setGroupByColumns] = useState<string[]>([])
   const [aggregations, setAggregations] = useState<AggregationConfig[]>([])
-  const [resultName, setResultName] = useState('Grouped Result')
+  const [resultName, setResultName] = useState(t('groupBy.defaultResultName'))
+
+  const aggregationFunctions: { value: AggregationFunction; label: string; description: string }[] = [
+    { value: 'count', label: t('groupBy.fn.count'), description: t('groupBy.fn.count.desc') },
+    { value: 'countDistinct', label: t('groupBy.fn.countDistinct'), description: t('groupBy.fn.countDistinct.desc') },
+    { value: 'sum', label: t('groupBy.fn.sum'), description: t('groupBy.fn.sum.desc') },
+    { value: 'avg', label: t('groupBy.fn.avg'), description: t('groupBy.fn.avg.desc') },
+    { value: 'min', label: t('groupBy.fn.min'), description: t('groupBy.fn.min.desc') },
+    { value: 'max', label: t('groupBy.fn.max'), description: t('groupBy.fn.max.desc') },
+    { value: 'median', label: t('groupBy.fn.median'), description: t('groupBy.fn.median.desc') },
+    { value: 'stddev', label: t('groupBy.fn.stddev'), description: t('groupBy.fn.stddev.desc') },
+    { value: 'variance', label: t('groupBy.fn.variance'), description: t('groupBy.fn.variance.desc') },
+  ]
 
   const availableColumns = useMemo(() => {
     return columns.map(col => col.name)
@@ -91,7 +93,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
     if (!column) return ['count', 'countDistinct']
 
     if (column.type === 'numeric') {
-      return AGGREGATION_FUNCTIONS.map(f => f.value)
+      return aggregationFunctions.map(f => f.value)
     } else if (column.type === 'date') {
       return ['count', 'countDistinct', 'min', 'max']
     }
@@ -272,9 +274,9 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
         <div className="flex items-center gap-2">
           <FunnelSimple size={24} weight="duotone" className="text-primary" />
           <div>
-            <CardTitle>Group By & Aggregation</CardTitle>
-            <CardDescription>
-              Group data by columns and apply aggregation functions for statistical analysis
+              <CardTitle>{t('groupBy.title')}</CardTitle>
+              <CardDescription>
+              {t('groupBy.description')}
             </CardDescription>
           </div>
         </div>
@@ -282,7 +284,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label className="text-base font-semibold">Group By Columns</Label>
+            <Label className="text-base font-semibold">{t('groupBy.columns')}</Label>
             <Button
               onClick={addGroupByColumn}
               size="sm"
@@ -290,13 +292,13 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
               disabled={groupByColumns.length >= availableColumns.length}
             >
               <Plus size={16} weight="bold" className="mr-1" />
-              Add Column
+              {t('groupBy.addColumn')}
             </Button>
           </div>
 
           {groupByColumns.length === 0 && (
             <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md">
-              No grouping columns. Aggregations will be calculated across all data.
+              {t('groupBy.noColumns')}
             </div>
           )}
 
@@ -330,27 +332,27 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label className="text-base font-semibold">Aggregations</Label>
+            <Label className="text-base font-semibold">{t('groupBy.aggregations')}</Label>
             <Button
               onClick={addAggregation}
               size="sm"
               variant="outline"
             >
               <Plus size={16} weight="bold" className="mr-1" />
-              Add Aggregation
+              {t('groupBy.addAggregation')}
             </Button>
           </div>
 
           {aggregations.length === 0 && (
             <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md">
-              Add at least one aggregation function to perform analysis.
+              {t('groupBy.noAggregations')}
             </div>
           )}
 
           <div className="space-y-3">
             {aggregations.map((agg) => {
               const availableFuncs = getAvailableFunctions(agg.column)
-              const currentFunc = AGGREGATION_FUNCTIONS.find(f => f.value === agg.function)
+              const currentFunc = aggregationFunctions.find(f => f.value === agg.function)
               
               return (
                 <div key={agg.id} className="p-4 border rounded-lg space-y-3 bg-card">
@@ -358,7 +360,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
                     <div className="flex-1 grid gap-3">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Function</Label>
+                          <Label className="text-xs text-muted-foreground">{t('groupBy.function')}</Label>
                           <Select 
                             value={agg.function} 
                             onValueChange={(value) => updateAggregation(agg.id, 'function', value)}
@@ -367,7 +369,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {AGGREGATION_FUNCTIONS
+                              {aggregationFunctions
                                 .filter(f => availableFuncs.includes(f.value))
                                 .map(func => (
                                   <SelectItem key={func.value} value={func.value}>
@@ -382,7 +384,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Column</Label>
+                          <Label className="text-xs text-muted-foreground">{t('groupBy.column')}</Label>
                           <Select 
                             value={agg.column} 
                             onValueChange={(value) => updateAggregation(agg.id, 'column', value)}
@@ -398,7 +400,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
                                     <div className="flex items-center gap-2">
                                       <span>{column}</span>
                                       <Badge variant="outline" className="text-xs">
-                                        {colInfo?.type}
+                                        {colInfo ? t(`columnType.${colInfo.type}`) : t('common.none')}
                                       </Badge>
                                     </div>
                                   </SelectItem>
@@ -411,7 +413,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
 
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">
-                          Output Column Name (optional)
+                          {t('groupBy.outputName')}
                         </Label>
                         <Input
                           placeholder={`${agg.function}(${agg.column})`}
@@ -444,11 +446,11 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
         </div>
 
         <div className="space-y-2">
-          <Label>Result Name</Label>
+          <Label>{t('groupBy.resultName')}</Label>
           <Input
             value={resultName}
             onChange={(e) => setResultName(e.target.value)}
-            placeholder="Enter a name for the grouped result"
+            placeholder={t('groupBy.resultNamePlaceholder')}
           />
         </div>
 
@@ -459,7 +461,7 @@ export function GroupByPanel({ data, columns, onGroupResult }: GroupByPanelProps
           size="lg"
         >
           <FunnelSimple size={20} weight="bold" className="mr-2" />
-          Execute Group By
+          {t('groupBy.execute')}
         </Button>
       </CardContent>
     </Card>

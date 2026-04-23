@@ -7,6 +7,7 @@ import { ArrowsLeftRight, Play, Info } from '@phosphor-icons/react'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import type { DataRow, ColumnInfo, JoinRelationship } from '@/lib/types'
+import { useLanguage } from '@/lib/i18n'
 
 interface QueryResult {
   id: string
@@ -24,6 +25,7 @@ interface JoinPanelProps {
 type JoinType = 'INNER' | 'LEFT' | 'RIGHT' | 'FULL'
 
 export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
+  const { t } = useLanguage()
   const [leftTable, setLeftTable] = useState<string>('')
   const [rightTable, setRightTable] = useState<string>('')
   const [leftColumn, setLeftColumn] = useState<string>('')
@@ -47,12 +49,12 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
     setError('')
 
     if (!leftTableData || !rightTableData) {
-      setError('请选择两个不同的查询结果表')
+      setError(t('join.error.selectTwoTables'))
       return
     }
 
     if (!leftColumn || !rightColumn) {
-      setError('请选择连接列')
+      setError(t('join.error.selectColumns'))
       return
     }
 
@@ -114,7 +116,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
         const fullResult = (leftJoin as DataRow[]).concat(rightJoin as DataRow[])
         
         if (fullResult.length === 0) {
-          setError('JOIN 操作未返回任何数据')
+          setError(t('join.error.noData'))
           return
         }
 
@@ -147,7 +149,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
       const result = alasql(query, [leftTableData.data, rightTableData.data])
 
       if (!Array.isArray(result) || result.length === 0) {
-        setError('JOIN 操作未返回任何数据')
+        setError(t('join.error.noData'))
         return
       }
 
@@ -180,7 +182,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
       setLeftColumn('')
       setRightColumn('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'JOIN 操作失败')
+      setError(err instanceof Error ? err.message : t('join.error.failed'))
     }
   }
 
@@ -190,9 +192,9 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
         <CardContent className="py-12">
           <div className="text-center space-y-2">
             <ArrowsLeftRight size={48} weight="thin" className="mx-auto text-muted-foreground" />
-            <h3 className="text-lg font-medium text-muted-foreground">需要至少 2 个查询结果</h3>
+            <h3 className="text-lg font-medium text-muted-foreground">{t('join.needResultsTitle')}</h3>
             <p className="text-sm text-muted-foreground">
-              请先执行 SQL 查询生成至少两个结果表，然后再进行 JOIN 操作
+              {t('join.needResultsDesc')}
             </p>
           </div>
         </CardContent>
@@ -205,36 +207,35 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ArrowsLeftRight size={24} weight="bold" />
-          JOIN 操作
+          {t('join.title')}
         </CardTitle>
         <CardDescription>
-          合并两个查询结果表，通过指定的列进行连接
+          {t('join.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <Info size={16} weight="bold" />
           <AlertDescription className="text-xs">
-            <strong>JOIN 类型说明：</strong><br/>
-            • <strong>INNER JOIN</strong>: 返回两表中匹配的行<br/>
-            • <strong>LEFT JOIN</strong>: 返回左表所有行，右表匹配的行<br/>
-            • <strong>RIGHT JOIN</strong>: 返回右表所有行，左表匹配的行<br/>
-            • <strong>FULL JOIN</strong>: 返回两表的所有行
+            <strong>{t('join.helpTitle')}:</strong><br/>
+            • <strong>INNER JOIN</strong>: {t('join.help.inner')}<br/>
+            • <strong>LEFT JOIN</strong>: {t('join.help.left')}<br/>
+            • <strong>RIGHT JOIN</strong>: {t('join.help.right')}<br/>
+            • <strong>FULL JOIN</strong>: {t('join.help.full')}
           </AlertDescription>
         </Alert>
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-4 p-4 rounded-lg bg-accent/10 border-2 border-accent/30">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">左表</Badge>
-              <span className="text-xs text-muted-foreground">Left Table</span>
+              <Badge variant="secondary">{t('join.leftTable')}</Badge>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="left-table">选择表</Label>
+              <Label htmlFor="left-table">{t('join.selectTable')}</Label>
               <Select value={leftTable} onValueChange={setLeftTable}>
                 <SelectTrigger id="left-table">
-                  <SelectValue placeholder="选择左表" />
+                  <SelectValue placeholder={t('join.selectLeftTable')} />
                 </SelectTrigger>
                 <SelectContent>
                   {queryResults.map((result) => (
@@ -245,7 +246,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
                     >
                       {result.name}
                       <span className="text-xs text-muted-foreground ml-2">
-                        ({result.data.length} 行)
+                        ({t('join.rows', { count: result.data.length })})
                       </span>
                     </SelectItem>
                   ))}
@@ -254,21 +255,21 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="left-column">连接列</Label>
+              <Label htmlFor="left-column">{t('join.joinColumn')}</Label>
               <Select 
                 value={leftColumn} 
                 onValueChange={setLeftColumn}
                 disabled={!leftTable}
               >
                 <SelectTrigger id="left-column">
-                  <SelectValue placeholder="选择列" />
+                  <SelectValue placeholder={t('join.selectColumn')} />
                 </SelectTrigger>
                 <SelectContent>
                   {leftTableData?.columns.map((col) => (
                     <SelectItem key={col.name} value={col.name}>
                       {col.name}
                       <span className="text-xs text-muted-foreground ml-2">
-                        ({col.type === 'numeric' ? '数字' : col.type === 'date' ? '日期' : '文本'})
+                        ({t(`columnType.${col.type}`)})
                       </span>
                     </SelectItem>
                   ))}
@@ -279,15 +280,14 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
 
           <div className="space-y-4 p-4 rounded-lg bg-primary/10 border-2 border-primary/30">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">右表</Badge>
-              <span className="text-xs text-muted-foreground">Right Table</span>
+              <Badge variant="secondary">{t('join.rightTable')}</Badge>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="right-table">选择表</Label>
+              <Label htmlFor="right-table">{t('join.selectTable')}</Label>
               <Select value={rightTable} onValueChange={setRightTable}>
                 <SelectTrigger id="right-table">
-                  <SelectValue placeholder="选择右表" />
+                  <SelectValue placeholder={t('join.selectRightTable')} />
                 </SelectTrigger>
                 <SelectContent>
                   {queryResults.map((result) => (
@@ -298,7 +298,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
                     >
                       {result.name}
                       <span className="text-xs text-muted-foreground ml-2">
-                        ({result.data.length} 行)
+                        ({t('join.rows', { count: result.data.length })})
                       </span>
                     </SelectItem>
                   ))}
@@ -307,21 +307,21 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="right-column">连接列</Label>
+              <Label htmlFor="right-column">{t('join.joinColumn')}</Label>
               <Select 
                 value={rightColumn} 
                 onValueChange={setRightColumn}
                 disabled={!rightTable}
               >
                 <SelectTrigger id="right-column">
-                  <SelectValue placeholder="选择列" />
+                  <SelectValue placeholder={t('join.selectColumn')} />
                 </SelectTrigger>
                 <SelectContent>
                   {rightTableData?.columns.map((col) => (
                     <SelectItem key={col.name} value={col.name}>
                       {col.name}
                       <span className="text-xs text-muted-foreground ml-2">
-                        ({col.type === 'numeric' ? '数字' : col.type === 'date' ? '日期' : '文本'})
+                        ({t(`columnType.${col.type}`)})
                       </span>
                     </SelectItem>
                   ))}
@@ -332,16 +332,16 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="join-type">JOIN 类型</Label>
+          <Label htmlFor="join-type">{t('join.type')}</Label>
           <Select value={joinType} onValueChange={(v) => setJoinType(v as JoinType)}>
             <SelectTrigger id="join-type" className="w-full md:w-64">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INNER">INNER JOIN (内连接)</SelectItem>
-              <SelectItem value="LEFT">LEFT JOIN (左连接)</SelectItem>
-              <SelectItem value="RIGHT">RIGHT JOIN (右连接)</SelectItem>
-              <SelectItem value="FULL">FULL JOIN (全连接)</SelectItem>
+              <SelectItem value="INNER">{t('join.type.inner')}</SelectItem>
+              <SelectItem value="LEFT">{t('join.type.left')}</SelectItem>
+              <SelectItem value="RIGHT">{t('join.type.right')}</SelectItem>
+              <SelectItem value="FULL">{t('join.type.full')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -360,7 +360,7 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
             disabled={!canExecuteJoin}
           >
             <Play size={20} weight="bold" className="mr-2" />
-            执行 JOIN
+            {t('join.execute')}
           </Button>
           <Button 
             onClick={() => {
@@ -373,16 +373,16 @@ export function JoinPanel({ queryResults, onJoinResult }: JoinPanelProps) {
             variant="outline"
             size="lg"
           >
-            重置
+            {t('join.reset')}
           </Button>
         </div>
 
         {canExecuteJoin && leftTableData && rightTableData && (
           <div className="rounded-lg bg-muted p-4">
-            <h4 className="text-sm font-medium mb-2">预览 JOIN 操作</h4>
+            <h4 className="text-sm font-medium mb-2">{t('join.preview')}</h4>
             <code className="text-xs block font-mono break-all text-muted-foreground">
-              {joinType} JOIN: {leftTableData.name} ({leftTableData.data.length} 行) 
-              ⋈ {rightTableData.name} ({rightTableData.data.length} 行)
+              {joinType} JOIN: {leftTableData.name} ({t('join.rows', { count: leftTableData.data.length })}) 
+              ⋈ {rightTableData.name} ({t('join.rows', { count: rightTableData.data.length })})
               <br/>
               ON {leftTableData.name}.[{leftColumn}] = {rightTableData.name}.[{rightColumn}]
             </code>
