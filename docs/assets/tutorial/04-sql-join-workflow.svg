@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+  <title id="title">SQL 与 JOIN 工作流说明图</title>
+  <desc id="desc">展示从原始数据通过 SQL 生成结果表，再使用 JOIN 合并并形成关系图的流程。</desc>
+  <rect width="1200" height="640" fill="#f6f8fc"/>
+  <text x="72" y="68" fill="#17358f" font-size="34" font-weight="800" font-family="Arial, sans-serif">SQL / JOIN 工作流</text>
+  <text x="72" y="100" fill="#64748b" font-size="16" font-family="Arial, sans-serif">先用 SQL 生成两张结果表，再用 JOIN 合并，最后查看关系图。</text>
+
+  <g font-family="Arial, sans-serif" transform="translate(72 160)">
+    <rect width="230" height="150" rx="14" fill="#ffffff" stroke="#dbe3ef"/>
+    <text x="24" y="42" fill="#0f172a" font-size="20" font-weight="800">原始数据</text>
+    <text x="24" y="76" fill="#64748b" font-size="14">64 行 × 33 列</text>
+    <rect x="24" y="102" width="182" height="28" rx="6" fill="#eef5ff"/>
+    <text x="42" y="121" fill="#17358f" font-size="12" font-weight="700">demo_data_analysis_tool.csv</text>
+  </g>
+
+  <path d="M322 235 H420" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <g font-family="Arial, sans-serif" transform="translate(430 132)">
+    <rect width="320" height="210" rx="14" fill="#0f172a"/>
+    <text x="24" y="42" fill="#ffffff" font-size="20" font-weight="800">SQL 查询编辑器</text>
+    <text x="24" y="76" fill="#cbd5e1" font-size="13">表名用 ? 表示当前数据集</text>
+    <text x="24" y="112" fill="#7dd3fc" font-size="13" font-family="Menlo, monospace">SELECT customer_id, customer_name</text>
+    <text x="24" y="138" fill="#7dd3fc" font-size="13" font-family="Menlo, monospace">FROM ?</text>
+    <text x="24" y="164" fill="#7dd3fc" font-size="13" font-family="Menlo, monospace">GROUP BY customer_id</text>
+  </g>
+
+  <path d="M770 235 H860" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <g font-family="Arial, sans-serif" transform="translate(880 116)">
+    <rect width="248" height="100" rx="14" fill="#ffffff" stroke="#dbe3ef"/>
+    <text x="24" y="38" fill="#0f172a" font-size="18" font-weight="800">结果表 A</text>
+    <text x="24" y="66" fill="#64748b" font-size="13">客户维度表</text>
+    <rect y="128" width="248" height="100" rx="14" fill="#ffffff" stroke="#dbe3ef"/>
+    <text x="24" y="166" fill="#0f172a" font-size="18" font-weight="800">结果表 B</text>
+    <text x="24" y="194" fill="#64748b" font-size="13">订单明细表</text>
+  </g>
+
+  <path d="M1004 354 V436" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <g font-family="Arial, sans-serif" transform="translate(72 420)">
+    <rect width="320" height="140" rx="14" fill="#ffffff" stroke="#dbe3ef"/>
+    <text x="24" y="42" fill="#0f172a" font-size="20" font-weight="800">JOIN 面板</text>
+    <text x="24" y="74" fill="#64748b" font-size="14">选择左右表，使用 customer_id 关联。</text>
+    <rect x="24" y="98" width="88" height="26" rx="13" fill="#e0f2fe"/>
+    <text x="45" y="116" fill="#0369a1" font-size="12" font-weight="700">INNER</text>
+    <rect x="124" y="98" width="70" height="26" rx="13" fill="#dcfce7"/>
+    <text x="144" y="116" fill="#166534" font-size="12" font-weight="700">LEFT</text>
+    <rect x="206" y="98" width="70" height="26" rx="13" fill="#fef3c7"/>
+    <text x="224" y="116" fill="#92400e" font-size="12" font-weight="700">FULL</text>
+  </g>
+
+  <path d="M412 490 H540" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <g font-family="Arial, sans-serif" transform="translate(560 420)">
+    <rect width="250" height="140" rx="14" fill="#17358f"/>
+    <text x="24" y="42" fill="#ffffff" font-size="20" font-weight="800">JOIN 结果</text>
+    <text x="24" y="74" fill="#dbeafe" font-size="14">字段自动加 L_ / R_ 前缀。</text>
+    <text x="24" y="108" fill="#dbeafe" font-size="13" font-family="Menlo, monospace">L_customer_id</text>
+    <text x="142" y="108" fill="#dbeafe" font-size="13" font-family="Menlo, monospace">R_revenue</text>
+  </g>
+
+  <path d="M830 490 H918" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <g font-family="Arial, sans-serif" transform="translate(936 420)">
+    <rect width="192" height="140" rx="14" fill="#ffffff" stroke="#dbe3ef"/>
+    <text x="24" y="42" fill="#0f172a" font-size="20" font-weight="800">关系图</text>
+    <circle cx="62" cy="94" r="22" fill="#ffffff" stroke="#0796b3" stroke-width="3"/>
+    <circle cx="130" cy="94" r="22" fill="#17358f"/>
+    <line x1="84" y1="94" x2="108" y2="94" stroke="#0796b3" stroke-width="4"/>
+  </g>
+
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2 2 L10 6 L2 10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+</svg>
